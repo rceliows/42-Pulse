@@ -1,8 +1,7 @@
 # 42-Pulse
 
-42-Pulse is the ft_transcendence project: a web platform built around 42 School
-data, featuring a React frontend, a Node.js API, and a data ingestion/sync
-pipeline for 42 API v2.
+42 Pulse is a full-stack network monitoring platform built from zero as the final team project of 42 Belgium's common core. Lightweight C++ agents collect live data and stream it through a Node.js/Express REST API into a React/Vite dashboard, with WebSocket feeds pushing real-time updates to the browser. The whole stack — frontend, API, PostgreSQL, and an NGINX reverse proxy with SSL and OAuth2 authentication against the 42 Intra API — ships as a multi-service Docker Compose setup that deploys with a single command.
+Built with no starter code and validated through structured peer review: every architectural decision in here had to be explained and defended line by line.
 
 It includes:
 - A React/Vite frontend (`frontend/`)
@@ -13,13 +12,6 @@ It includes:
 - Operational one-shot tooling (`orchestration-agent`, `ops-agent`)
 - In-progress security modules: OAuth/WAF gateway (`security_gateway/`) and the
   IV.5 Cybersecurity module (`security_iv5/`, ModSecurity + Vault)
-
-## Current Status (February 13, 2026)
-
-- Phase 1 (stable metadata pipeline) is implemented and automated.
-- Live user synchronization flow is implemented with detector/fetcher/upserter workers.
-- Root documentation in this folder reflects the current file layout and script paths.
-- Historical analysis documents in `docs/` are preserved with date context.
 
 ## Workspace Layout
 
@@ -191,7 +183,7 @@ make down
 ## Authors
 
 This project was developed by:
-- rceliows
 - drobert
-- phiascha
 - matsauva
+- phiascha
+- rceliows
