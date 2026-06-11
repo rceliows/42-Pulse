@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy - 42 Network Pulse</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .switch-links {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+      [data-lang-panel][hidden] {
+        display: none;
+      }
+
+      .legal-page {
+        max-width: 980px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .legal-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .legal-meta {
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .legal-content {
+        line-height: 1.7;
+      }
+
+      .legal-content h2 {
+        margin-top: 0.5rem;
+      }
+
+      .legal-content p {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .legal-content ul {
+        list-style: disc;
+        display: block;
+        max-height: none;
+        overflow: visible;
+        padding-left: 1.25rem;
+      }
+
+      .legal-content li {
+        display: list-item;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link active" aria-current="page" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="session-actions">
+        <p class="status-text" data-i18n="privacy.status">Privacy Policy</p>
+        <button type="button" class="ghost logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main class="legal-page">
+      <section class="panel legal-content" data-lang-panel="en">
+        <div class="legal-header">
+          <div>
+            <h2>Privacy Policy</h2>
+            <p class="legal-meta">Last updated: April 27, 2026</p>
+          </div>
+        </div>
+
+        <p>
+          This Privacy Policy explains how 42 Network Pulse handles information displayed or processed through the
+          live detector, dashboards, admin views, and API data explorer.
+        </p>
+
+        <h2>1. Information We Process</h2>
+        <p>
+          The service may process API-derived event data such as timestamps, campus identifiers, event types,
+          operational status, and related technical metadata. Depending on configuration and access level, some views
+          may also involve user-related identifiers from API 42.
+        </p>
+
+        <h2>2. How Information Is Used</h2>
+        <ul>
+          <li>To display live operational activity and detector events.</li>
+          <li>To support debugging, monitoring, analytics, and administrative review.</li>
+          <li>To improve reliability, performance, and privacy-safe presentation of event data.</li>
+        </ul>
+
+        <h2>3. Local Browser Storage</h2>
+        <p>
+          Some pages may store interface preferences or optional access settings in your browser, such as language
+          selection or a remembered token if you explicitly enable that option. Browser-stored values remain on the
+          device unless cleared by you or the browser.
+        </p>
+
+        <h2>4. Data Minimization</h2>
+        <p>
+          42 Network Pulse should be configured to show only the data needed for the intended operational purpose.
+          Privacy-safe views may hide usernames, subject identifiers, or other direct identifiers while preserving
+          event context such as campus, event type, and time.
+        </p>
+
+        <h2>5. Sharing</h2>
+        <p>
+          Do not export, publish, or share displayed data unless you are authorized to do so and the sharing complies
+          with applicable policies, laws, and API 42 requirements.
+        </p>
+
+        <h2>6. Security</h2>
+        <p>
+          Keep tokens, credentials, and administrative access secure. The service should be accessed only by authorized
+          users and deployed with appropriate network, authentication, and logging protections.
+        </p>
+
+        <h2>7. Retention</h2>
+        <p>
+          Retention depends on the deployment configuration, database settings, and operational needs of the maintainer.
+          Event data should not be kept longer than necessary for the service purpose.
+        </p>
+
+        <h2>8. Third-Party Services</h2>
+        <p>
+          The service may connect to API 42 or other external systems. Those services may handle information under
+          their own privacy policies, terms, and technical controls.
+        </p>
+
+        <h2>9. Contact</h2>
+        <p>
+          For privacy questions, data access concerns, or removal requests, contact the project maintainer or system
+          administrator responsible for this deployment.
+        </p>
+      </section>
+      <section class="panel legal-content" data-lang-panel="fr" hidden>
+        <div class="legal-header">
+          <div>
+            <h2>Politique de confidentialité</h2>
+            <p class="legal-meta">Dernière mise à jour : 27 avril 2026</p>
+          </div>
+        </div>
+
+        <p>
+          Cette politique de confidentialité explique comment 42 Network Pulse traite les informations affichées ou
+          traitées par le détecteur en direct, les tableaux de bord, les vues d'administration et l'explorateur de
+          données API.
+        </p>
+
+        <h2>1. Informations traitées</h2>
+        <p>
+          Le service peut traiter des données d'événements issues d'API, comme des horodatages, identifiants de campus,
+          types d'événements, états opérationnels et métadonnées techniques associées. Selon la configuration et le
+          niveau d'accès, certaines vues peuvent aussi impliquer des identifiants liés aux utilisateurs provenant de
+          l'API 42.
+        </p>
+
+        <h2>2. Utilisation des informations</h2>
+        <ul>
+          <li>Afficher l'activité opérationnelle en direct et les événements du détecteur.</li>
+          <li>Prendre en charge le débogage, la supervision, l'analyse et la revue administrative.</li>
+          <li>Améliorer la fiabilité, les performances et la présentation respectueuse de la confidentialité.</li>
+        </ul>
+
+        <h2>3. Stockage local du navigateur</h2>
+        <p>
+          Certaines pages peuvent stocker des préférences d'interface ou des paramètres d'accès optionnels dans votre
+          navigateur, comme le choix de la langue ou un jeton mémorisé si vous activez explicitement cette option. Les
+          valeurs stockées dans le navigateur restent sur l'appareil sauf suppression par vous ou par le navigateur.
+        </p>
+
+        <h2>4. Minimisation des données</h2>
+        <p>
+          42 Network Pulse doit être configuré pour afficher uniquement les données nécessaires à l'objectif opérationnel
+          prévu. Les vues respectueuses de la confidentialité peuvent masquer les noms d'utilisateur, identifiants de
+          sujet ou autres identifiants directs tout en conservant le contexte de l'événement, comme le campus, le type
+          d'événement et l'heure.
+        </p>
+
+        <h2>5. Partage</h2>
+        <p>
+          N'exportez, ne publiez et ne partagez pas les données affichées sauf si vous y êtes autorisé et si ce partage
+          respecte les politiques applicables, les lois et les exigences de l'API 42.
+        </p>
+
+        <h2>6. Sécurité</h2>
+        <p>
+          Gardez les jetons, identifiants et accès administratifs sécurisés. Le service doit être accessible uniquement
+          aux utilisateurs autorisés et déployé avec des protections réseau, d'authentification et de journalisation
+          appropriées.
+        </p>
+
+        <h2>7. Conservation</h2>
+        <p>
+          La conservation dépend de la configuration du déploiement, des paramètres de base de données et des besoins
+          opérationnels du mainteneur. Les données d'événements ne doivent pas être conservées plus longtemps que
+          nécessaire au but du service.
+        </p>
+
+        <h2>8. Services tiers</h2>
+        <p>
+          Le service peut se connecter à l'API 42 ou à d'autres systèmes externes. Ces services peuvent traiter les
+          informations selon leurs propres politiques de confidentialité, conditions et contrôles techniques.
+        </p>
+
+        <h2>9. Contact</h2>
+        <p>
+          Pour toute question liée à la confidentialité, demande d'accès aux données ou demande de suppression,
+          contactez le responsable du projet ou l'administrateur système chargé de ce déploiement.
+        </p>
+      </section>
+      <section class="panel legal-content" data-lang-panel="es" hidden>
+        <div class="legal-header">
+          <div>
+            <h2>Política de privacidad</h2>
+            <p class="legal-meta">Última actualización: 27 de abril de 2026</p>
+          </div>
+        </div>
+
+        <p>
+          Esta política de privacidad explica cómo 42 Network Pulse gestiona la información mostrada o procesada a
+          través del detector en vivo, los paneles, las vistas de administración y el explorador de datos de API.
+        </p>
+
+        <h2>1. Información que procesamos</h2>
+        <p>
+          El servicio puede procesar datos de eventos derivados de API, como marcas temporales, identificadores de
+          campus, tipos de eventos, estado operativo y metadatos técnicos relacionados. Según la configuración y el
+          nivel de acceso, algunas vistas también pueden implicar identificadores relacionados con usuarios de API 42.
+        </p>
+
+        <h2>2. Uso de la información</h2>
+        <ul>
+          <li>Mostrar actividad operativa en vivo y eventos del detector.</li>
+          <li>Apoyar la depuración, el monitoreo, el análisis y la revisión administrativa.</li>
+          <li>Mejorar la fiabilidad, el rendimiento y la presentación de datos respetuosa con la privacidad.</li>
+        </ul>
+
+        <h2>3. Almacenamiento local del navegador</h2>
+        <p>
+          Algunas páginas pueden almacenar preferencias de interfaz o ajustes de acceso opcionales en tu navegador,
+          como la selección de idioma o un token recordado si activas explícitamente esa opción. Los valores almacenados
+          en el navegador permanecen en el dispositivo salvo que tú o el navegador los eliminen.
+        </p>
+
+        <h2>4. Minimización de datos</h2>
+        <p>
+          42 Network Pulse debe configurarse para mostrar solo los datos necesarios para el propósito operativo previsto.
+          Las vistas respetuosas con la privacidad pueden ocultar nombres de usuario, identificadores de sujeto u otros
+          identificadores directos, conservando el contexto del evento, como campus, tipo de evento y hora.
+        </p>
+
+        <h2>5. Compartición</h2>
+        <p>
+          No exportes, publiques ni compartas los datos mostrados salvo que estés autorizado a hacerlo y que dicha
+          compartición cumpla las políticas aplicables, las leyes y los requisitos de API 42.
+        </p>
+
+        <h2>6. Seguridad</h2>
+        <p>
+          Mantén seguros los tokens, credenciales y accesos administrativos. El servicio debe ser accesible solo para
+          usuarios autorizados y desplegarse con protecciones adecuadas de red, autenticación y registro.
+        </p>
+
+        <h2>7. Conservación</h2>
+        <p>
+          La conservación depende de la configuración del despliegue, los ajustes de base de datos y las necesidades
+          operativas del responsable. Los datos de eventos no deben conservarse más tiempo del necesario para el
+          propósito del servicio.
+        </p>
+
+        <h2>8. Servicios de terceros</h2>
+        <p>
+          El servicio puede conectarse a API 42 u otros sistemas externos. Esos servicios pueden gestionar información
+          bajo sus propias políticas de privacidad, términos y controles técnicos.
+        </p>
+
+        <h2>9. Contacto</h2>
+        <p>
+          Para preguntas sobre privacidad, solicitudes de acceso a datos o solicitudes de eliminación, contacta con la
+          persona responsable del proyecto o con el administrador del sistema encargado de este despliegue.
+        </p>
+      </section>
+    </main>
+    <script>
+      const LANGUAGE_KEY = "42-pulse.language";
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "privacy.status": "Privacy Policy",
+          "page.title": "Privacy Policy - 42 Network Pulse",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "privacy.status": "Politique de confidentialité",
+          "page.title": "Politique de confidentialité - 42 Network Pulse",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "privacy.status": "Política de privacidad",
+          "page.title": "Política de privacidad - 42 Network Pulse",
+        },
+      };
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key) {
+        const lang = getLanguage();
+        return I18N[lang]?.[key] || I18N.en[key] || key;
+      }
+
+      function applyLanguage() {
+        const lang = getLanguage();
+        document.documentElement.lang = lang;
+        document.title = t("page.title");
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+        document.querySelectorAll("[data-lang-panel]").forEach((node) => {
+          node.hidden = node.dataset.langPanel !== lang;
+        });
+      }
+
+      const languageSelect = document.getElementById("language-select");
+      if (languageSelect) {
+        languageSelect.value = getLanguage();
+        languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, languageSelect.value);
+          applyLanguage();
+        });
+      }
+      applyLanguage();
+    </script>
+  </body>
+</html>

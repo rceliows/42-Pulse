@@ -1,0 +1,16 @@
+runtime/approle/*
+runtime/bootstrap/*
+runtime/rendered/*
+runtime/logs/vault/*
+runtime/logs/waf/*
+vault/certs/*
+vault/data/*
+waf/certs/*
+!runtime/approle/.gitkeep
+!runtime/bootstrap/.gitkeep
+!runtime/rendered/.gitkeep
+!runtime/logs/vault/.gitkeep
+!runtime/logs/waf/.gitkeep
+!vault/certs/.gitkeep
+!vault/data/.gitkeep
+!waf/certs/.gitkeep

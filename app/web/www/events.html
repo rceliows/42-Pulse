@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>42 Network - Events DB</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .switch-links {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .controls-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.8rem;
+      }
+
+      .controls-grid > label,
+      .controls-grid > .actions-row {
+        min-width: 0;
+      }
+
+      .actions-row {
+        display: flex;
+        gap: 1.9rem;
+        align-items: center;
+        justify-content: center;
+        padding-top: 1.55rem;
+        width: 100%;
+      }
+
+      .actions-row button {
+        min-width: 110px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 980px;
+      }
+
+      thead th {
+        text-align: left;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        padding: 0.6rem 0.7rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel-muted);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      tbody td {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.7rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .types {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+      }
+
+      .type-chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.08rem 0.45rem;
+        font-size: 0.8rem;
+        color: var(--text);
+      }
+
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+      }
+
+      .pagination .buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .subject-cell {
+        display: grid;
+        gap: 0.3rem;
+      }
+
+      .subject-title {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+
+      .subject-meta {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .subtle-chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.12rem 0.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+
+      @media (max-width: 1600px) {
+        .controls-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 1280px) {
+        .controls-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 980px) {
+        .controls-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .actions-row {
+          padding-top: 0;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .controls-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link active" aria-current="page" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="session-actions">
+        <p class="status-text" id="status-text" data-i18n="status.loading">Loading...</p>
+        <button type="button" class="ghost logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-header">
+          <h2 data-i18n="filters.title">Filter & Query</h2>
+          <div class="meta">
+            <span class="pill" id="summary-total">rows=0</span>
+            <span class="pill" id="summary-time">window=—</span>
+            <span class="pill" id="summary-updated">updated=—</span>
+          </div>
+        </div>
+
+        <form id="filters-form">
+          <div class="controls-grid">
+            <label>
+              <span data-i18n="filters.search">Search</span>
+              <input type="text" id="q" name="q" placeholder="campus, event type..." data-i18n-placeholder="filters.search_placeholder" />
+            </label>
+
+            <label>
+              <span data-i18n="filters.campus_id">Campus ID</span>
+              <input type="number" id="campus_id" name="campus_id" min="0" placeholder="e.g. 21" data-i18n-placeholder="filters.campus_placeholder" />
+            </label>
+
+            <label>
+              <span data-i18n="filters.from">From (UTC)</span>
+              <input type="datetime-local" id="from" name="from" />
+            </label>
+
+            <label>
+              <span data-i18n="filters.to">To (UTC)</span>
+              <input type="datetime-local" id="to" name="to" />
+            </label>
+
+            <label>
+              <span data-i18n="filters.event_type">Event type</span>
+              <select id="event_type" name="event_type">
+                <option value="" data-i18n="filters.all_types">All types</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="filters.sort_by">Sort by</span>
+              <select id="sort_by" name="sort_by">
+                <option value="event_time" data-i18n="filters.sort_event_time">Event time</option>
+                <option value="event_type" data-i18n="filters.event_type">Event type</option>
+                <option value="campus_id" data-i18n="table.campus">Campus</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="filters.sort_direction">Sort direction</span>
+              <select id="sort_dir" name="sort_dir">
+                <option value="desc">desc</option>
+                <option value="asc">asc</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="filters.page_size">Page size</span>
+              <select id="page_size" name="page_size">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+            </label>
+
+            <div class="actions-row">
+              <button type="submit" data-i18n="actions.search">Search</button>
+              <button type="button" class="ghost" id="reset-btn" data-i18n="actions.reset">Reset</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2 data-i18n="events.title">Detector Events (canonical DB)</h2>
+          <div class="meta">
+            <span class="pill" id="page-pill">page=1/1</span>
+            <span class="pill" id="rows-pill">items=0</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="events-table">
+            <thead>
+              <tr>
+                <th data-i18n="table.event_time">event_time</th>
+                <th data-i18n="table.event_types">event_types</th>
+                <th data-i18n="table.record">Record</th>
+                <th data-i18n="table.campus">Campus</th>
+                <th data-i18n="table.changes">Changes</th>
+              </tr>
+            </thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <div class="mono" id="pagination-info">0 rows</div>
+          <div class="buttons">
+            <button type="button" id="prev-btn" class="ghost" data-i18n="actions.previous">Previous</button>
+            <button type="button" id="next-btn" class="ghost" data-i18n="actions.next">Next</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      const LANGUAGE_KEY = "42-pulse.language";
+
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "status.loading": "Loading...",
+          "status.loading_events": "Loading events...",
+          "status.loaded_rows": "Loaded {count} rows",
+          "status.meta_error": "Meta load error: {message}",
+          "status.load_error": "Load error: {message}",
+          "filters.title": "Filter & Query",
+          "filters.search": "Search",
+          "filters.search_placeholder": "campus, event type...",
+          "filters.campus_id": "Campus ID",
+          "filters.campus_placeholder": "e.g. 21",
+          "filters.from": "From (UTC)",
+          "filters.to": "To (UTC)",
+          "filters.event_type": "Event type",
+          "filters.all_types": "All types",
+          "filters.sort_by": "Sort by",
+          "filters.sort_event_time": "Event time",
+          "filters.sort_direction": "Sort direction",
+          "filters.page_size": "Page size",
+          "actions.search": "Search",
+          "actions.reset": "Reset",
+          "actions.previous": "Previous",
+          "actions.next": "Next",
+          "events.title": "Detector Events (canonical DB)",
+          "table.event_time": "event_time",
+          "table.event_types": "event_types",
+          "table.record": "Record",
+          "table.campus": "Campus",
+          "table.changes": "Changes",
+          "table.no_rows": "No rows for current filters.",
+          "table.load_error": "Error while loading events.",
+          "record.first_snapshot": "first snapshot",
+          "record.event_delta": "event delta",
+          "record.anonymous": "Anonymous event record",
+          "change.unknown": "unknown",
+          "change.null": "null",
+          "change.delta": "delta {value}",
+          "type.unknown": "Unknown",
+          "type.connection": "Connection",
+          "type.deconnection": "Disconnection",
+          "type.evaluation": "Evaluation",
+          "type.correction": "Correction",
+          "type.new_seen": "New seen",
+          "type.wallet": "Wallet",
+          "type.data": "Data",
+          "type.error": "Error",
+          "pill.rows": "rows={count}",
+          "pill.range": "range={min} .. {max}",
+          "pill.window": "window=-",
+          "pill.updated": "updated={time}",
+          "pill.page": "page={page}/{totalPages}",
+          "pill.items": "items={count}",
+          "pagination.info": "{total} rows - page {page} / {totalPages}",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "status.loading": "Chargement...",
+          "status.loading_events": "Chargement des événements...",
+          "status.loaded_rows": "{count} lignes chargées",
+          "status.meta_error": "Erreur de chargement des métadonnées : {message}",
+          "status.load_error": "Erreur de chargement : {message}",
+          "filters.title": "Filtrer et rechercher",
+          "filters.search": "Recherche",
+          "filters.search_placeholder": "campus, type d'événement...",
+          "filters.campus_id": "ID campus",
+          "filters.campus_placeholder": "ex. 21",
+          "filters.from": "Depuis (UTC)",
+          "filters.to": "Jusqu'à (UTC)",
+          "filters.event_type": "Type d'événement",
+          "filters.all_types": "Tous les types",
+          "filters.sort_by": "Trier par",
+          "filters.sort_event_time": "Heure de l'événement",
+          "filters.sort_direction": "Sens du tri",
+          "filters.page_size": "Taille de page",
+          "actions.search": "Rechercher",
+          "actions.reset": "Réinitialiser",
+          "actions.previous": "Précédent",
+          "actions.next": "Suivant",
+          "events.title": "Événements du détecteur (DB canonique)",
+          "table.event_time": "heure_événement",
+          "table.event_types": "types_événement",
+          "table.record": "Enregistrement",
+          "table.campus": "Campus",
+          "table.changes": "Changements",
+          "table.no_rows": "Aucune ligne pour les filtres actuels.",
+          "table.load_error": "Erreur pendant le chargement des événements.",
+          "record.first_snapshot": "premier instantané",
+          "record.event_delta": "delta d'événement",
+          "record.anonymous": "Enregistrement d'événement anonyme",
+          "change.unknown": "inconnu",
+          "change.null": "null",
+          "change.delta": "delta {value}",
+          "type.unknown": "Inconnu",
+          "type.connection": "Connexion",
+          "type.deconnection": "Déconnexion",
+          "type.evaluation": "Évaluation",
+          "type.correction": "Correction",
+          "type.new_seen": "Nouvelle présence",
+          "type.wallet": "Wallet",
+          "type.data": "Donnée",
+          "type.error": "Erreur",
+          "pill.rows": "lignes={count}",
+          "pill.range": "plage={min} .. {max}",
+          "pill.window": "fenêtre=-",
+          "pill.updated": "maj={time}",
+          "pill.page": "page={page}/{totalPages}",
+          "pill.items": "éléments={count}",
+          "pagination.info": "{total} lignes - page {page} / {totalPages}",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "status.loading": "Cargando...",
+          "status.loading_events": "Cargando eventos...",
+          "status.loaded_rows": "{count} filas cargadas",
+          "status.meta_error": "Error al cargar metadatos: {message}",
+          "status.load_error": "Error de carga: {message}",
+          "filters.title": "Filtrar y consultar",
+          "filters.search": "Buscar",
+          "filters.search_placeholder": "campus, tipo de evento...",
+          "filters.campus_id": "ID de campus",
+          "filters.campus_placeholder": "ej. 21",
+          "filters.from": "Desde (UTC)",
+          "filters.to": "Hasta (UTC)",
+          "filters.event_type": "Tipo de evento",
+          "filters.all_types": "Todos los tipos",
+          "filters.sort_by": "Ordenar por",
+          "filters.sort_event_time": "Hora del evento",
+          "filters.sort_direction": "Dirección de orden",
+          "filters.page_size": "Tamaño de página",
+          "actions.search": "Buscar",
+          "actions.reset": "Restablecer",
+          "actions.previous": "Anterior",
+          "actions.next": "Siguiente",
+          "events.title": "Eventos del detector (DB canónica)",
+          "table.event_time": "hora_evento",
+          "table.event_types": "tipos_evento",
+          "table.record": "Registro",
+          "table.campus": "Campus",
+          "table.changes": "Cambios",
+          "table.no_rows": "No hay filas para los filtros actuales.",
+          "table.load_error": "Error al cargar eventos.",
+          "record.first_snapshot": "primera captura",
+          "record.event_delta": "delta de evento",
+          "record.anonymous": "Registro de evento anónimo",
+          "change.unknown": "desconocido",
+          "change.null": "null",
+          "change.delta": "delta {value}",
+          "type.unknown": "Desconocido",
+          "type.connection": "Conexión",
+          "type.deconnection": "Desconexión",
+          "type.evaluation": "Evaluación",
+          "type.correction": "Corrección",
+          "type.new_seen": "Nueva presencia",
+          "type.wallet": "Wallet",
+          "type.data": "Dato",
+          "type.error": "Error",
+          "pill.rows": "filas={count}",
+          "pill.range": "rango={min} .. {max}",
+          "pill.window": "ventana=-",
+          "pill.updated": "act={time}",
+          "pill.page": "página={page}/{totalPages}",
+          "pill.items": "elementos={count}",
+          "pagination.info": "{total} filas - página {page} / {totalPages}",
+        },
+      };
+
+      const els = {
+        status: document.getElementById("status-text"),
+        form: document.getElementById("filters-form"),
+        resetBtn: document.getElementById("reset-btn"),
+        prevBtn: document.getElementById("prev-btn"),
+        nextBtn: document.getElementById("next-btn"),
+        body: document.getElementById("events-body"),
+        pagePill: document.getElementById("page-pill"),
+        rowsPill: document.getElementById("rows-pill"),
+        summaryTotal: document.getElementById("summary-total"),
+        summaryTime: document.getElementById("summary-time"),
+        summaryUpdated: document.getElementById("summary-updated"),
+        pageInfo: document.getElementById("pagination-info"),
+        eventType: document.getElementById("event_type"),
+        languageSelect: document.getElementById("language-select"),
+      };
+
+      const state = {
+        page: 1,
+        pageSize: 50,
+        total: 0,
+        totalPages: 1,
+        lastUpdated: null,
+        items: [],
+        metaTotal: 0,
+        metaMinTime: "-",
+        metaMaxTime: "-",
+      };
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key, values = {}) {
+        const lang = getLanguage();
+        const template = I18N[lang]?.[key] || I18N.en[key] || key;
+        return Object.entries(values).reduce(
+          (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+          template
+        );
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = getLanguage();
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+          node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+      }
+
+      function renderSummaryMeta() {
+        els.summaryTotal.textContent = t("pill.rows", { count: state.metaTotal });
+        els.summaryTime.textContent =
+          state.metaMinTime === "-" && state.metaMaxTime === "-"
+            ? t("pill.window")
+            : t("pill.range", { min: state.metaMinTime, max: state.metaMaxTime });
+        els.summaryUpdated.textContent = t("pill.updated", { time: fmtDate(state.lastUpdated) });
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function titleCaseLabel(text) {
+        if (!text) return "";
+        return String(text)
+          .toLowerCase()
+          .split(/[\s_]+/)
+          .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ""))
+          .join(" ");
+      }
+
+      function translateType(type) {
+        const key = String(type || "unknown").toLowerCase().trim() || "unknown";
+        const lang = getLanguage();
+        return I18N[lang]?.[`type.${key}`] || I18N.en[`type.${key}`] || titleCaseLabel(key);
+      }
+
+      function updateEventTypeOptionLabels() {
+        els.eventType.querySelectorAll("option[data-event-type]").forEach((option) => {
+          const type = option.dataset.eventType || "";
+          const count = option.dataset.count || "0";
+          option.textContent = `${translateType(type)} (${count})`;
+        });
+      }
+
+      function fmtDate(value) {
+        if (!value) return "-";
+        const t = Date.parse(String(value));
+        if (!Number.isFinite(t)) return "-";
+        return new Date(t).toISOString().slice(0, 19).replace("T", " ");
+      }
+
+      function toIsoFromLocalInput(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return "";
+        return date.toISOString();
+      }
+
+      function getFilters() {
+        const formData = new FormData(els.form);
+        const out = {
+          q: String(formData.get("q") || "").trim(),
+          event_type: String(formData.get("event_type") || "").trim(),
+          campus_id: String(formData.get("campus_id") || "").trim(),
+          from: toIsoFromLocalInput(String(formData.get("from") || "").trim()),
+          to: toIsoFromLocalInput(String(formData.get("to") || "").trim()),
+          sort_by: String(formData.get("sort_by") || "event_time"),
+          sort_dir: String(formData.get("sort_dir") || "desc"),
+          page_size: String(formData.get("page_size") || state.pageSize),
+        };
+        return out;
+      }
+
+      function buildQuery(filters) {
+        const params = new URLSearchParams();
+        params.set("page", String(state.page));
+        params.set("page_size", String(filters.page_size || state.pageSize));
+        params.set("sort_by", filters.sort_by || "event_time");
+        params.set("sort_dir", filters.sort_dir || "desc");
+
+        for (const key of ["q", "event_type", "campus_id", "from", "to"]) {
+          const value = filters[key];
+          if (value) params.set(key, value);
+        }
+        return params;
+      }
+
+      function renderRows(items) {
+        if (!Array.isArray(items) || items.length === 0) {
+          els.body.innerHTML = `<tr><td colspan="5" class="mono">${escapeHtml(t("table.no_rows"))}</td></tr>`;
+          return;
+        }
+
+        const formatChangeValue = (value) => {
+          if (value === null || value === undefined) return t("change.null");
+          if (typeof value === "object") {
+            try {
+              return JSON.stringify(value);
+            } catch {
+              return String(value);
+            }
+          }
+          return String(value);
+        };
+
+        const formatChanges = (changes) => {
+          if (!Array.isArray(changes) || changes.length === 0) return "-";
+          return changes
+            .map((change) => {
+              const path = escapeHtml(change?.path ? String(change.path) : t("change.unknown"));
+              const oldValue = change?.old;
+              const newValue = change?.new;
+              const oldLabel = escapeHtml(formatChangeValue(oldValue));
+              const newLabel = escapeHtml(formatChangeValue(newValue));
+              let line = `${path}: ${oldLabel} -> ${newLabel}`;
+
+              const oldNumeric =
+                typeof oldValue === "number"
+                  ? oldValue
+                  : typeof oldValue === "string" && oldValue.trim() !== ""
+                    ? Number(oldValue)
+                    : Number.NaN;
+              const newNumeric =
+                typeof newValue === "number"
+                  ? newValue
+                  : typeof newValue === "string" && newValue.trim() !== ""
+                    ? Number(newValue)
+                    : Number.NaN;
+
+              if (Number.isFinite(oldNumeric) && Number.isFinite(newNumeric)) {
+                const delta = newNumeric - oldNumeric;
+                const deltaLabel = delta > 0 ? `+${delta}` : String(delta);
+                line += ` (${t("change.delta", { value: deltaLabel })})`;
+              }
+              return line;
+            })
+            .join("<br>");
+        };
+
+        els.body.innerHTML = items
+          .map((row) => {
+            const types = Array.isArray(row.event_types) ? row.event_types : [];
+            const typeHtml =
+              types.length > 0
+                ? `<div class="types">${types.map((type) => `<span class="type-chip">${escapeHtml(translateType(type))}</span>`).join("")}</div>`
+                : `<span class="mono">-</span>`;
+            const snapshotLabel = row.first_snapshot ? t("record.first_snapshot") : t("record.event_delta");
+            const subjectLabel = `<div class="subject-cell">
+              <div class="subject-title">
+                <span class="subtle-chip">${escapeHtml(snapshotLabel)}</span>
+              </div>
+              <div class="subject-meta">${escapeHtml(t("record.anonymous"))}</div>
+            </div>`;
+            const changesDetails = formatChanges(row.changes);
+
+            return `<tr>
+              <td class="mono">${escapeHtml(fmtDate(row.event_time || row.event_at || row.updated_at || row.ingested_at))}</td>
+              <td>${typeHtml}</td>
+              <td>${subjectLabel}</td>
+              <td class="mono">${escapeHtml(row.campus_id ?? "-")}</td>
+              <td class="mono">${changesDetails}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function updatePagination() {
+        els.pagePill.textContent = t("pill.page", { page: state.page, totalPages: state.totalPages });
+        els.rowsPill.textContent = t("pill.items", { count: state.total });
+        els.pageInfo.textContent = t("pagination.info", {
+          total: state.total,
+          page: state.page,
+          totalPages: state.totalPages,
+        });
+        els.prevBtn.disabled = state.page <= 1;
+        els.nextBtn.disabled = state.page >= state.totalPages;
+      }
+
+      async function loadMeta() {
+        try {
+          const response = await fetch("/api/events/db/meta", {
+            headers: { Accept: "application/json" },
+          });
+          if (!response.ok) {
+            throw new Error(`meta_http_${response.status}`);
+          }
+          const data = await response.json();
+
+          const eventTypeOptions = (data.event_types || [])
+            .map((row) => {
+              const type = String(row.event_type || "");
+              const count = Number(row.count || 0);
+              return `<option value="${escapeHtml(type)}" data-event-type="${escapeHtml(type)}" data-count="${count}">${escapeHtml(translateType(type))} (${count})</option>`;
+            })
+            .join("");
+          els.eventType.insertAdjacentHTML("beforeend", eventTypeOptions);
+
+          const total = Number(data?.summary?.total_rows || 0);
+          const minT = fmtDate(data?.summary?.min_event_time);
+          const maxT = fmtDate(data?.summary?.max_event_time);
+          state.metaTotal = total;
+          state.metaMinTime = minT;
+          state.metaMaxTime = maxT;
+          renderSummaryMeta();
+        } catch (error) {
+          els.status.textContent = t("status.meta_error", { message: error.message });
+        }
+      }
+
+      async function loadEvents() {
+        const filters = getFilters();
+        state.pageSize = Number(filters.page_size || state.pageSize);
+        const query = buildQuery(filters);
+        els.status.textContent = t("status.loading_events");
+
+        try {
+          const response = await fetch(`/api/events/db?${query.toString()}`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`events_http_${response.status}: ${text.slice(0, 180)}`);
+          }
+
+          const data = await response.json();
+          const pg = data.pagination || {};
+          state.page = Number(pg.page || 1);
+          state.total = Number(pg.total || 0);
+          state.totalPages = Number(pg.total_pages || 1);
+          state.lastUpdated = data.timestamp_utc || null;
+          state.items = data.items || [];
+
+          renderRows(state.items);
+          updatePagination();
+          renderSummaryMeta();
+          els.status.textContent = t("status.loaded_rows", { count: Array.isArray(data.items) ? data.items.length : 0 });
+        } catch (error) {
+          els.status.textContent = t("status.load_error", { message: error.message });
+          els.body.innerHTML = `<tr><td colspan="5" class="mono">${escapeHtml(t("table.load_error"))}</td></tr>`;
+        }
+      }
+
+      els.form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        state.page = 1;
+        await loadEvents();
+      });
+
+      els.resetBtn.addEventListener("click", async () => {
+        els.form.reset();
+        state.page = 1;
+        await loadEvents();
+      });
+
+      els.prevBtn.addEventListener("click", async () => {
+        if (state.page <= 1) return;
+        state.page -= 1;
+        await loadEvents();
+      });
+
+      els.nextBtn.addEventListener("click", async () => {
+        if (state.page >= state.totalPages) return;
+        state.page += 1;
+        await loadEvents();
+      });
+
+      if (els.languageSelect) {
+        els.languageSelect.value = getLanguage();
+        els.languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, els.languageSelect.value);
+          applyStaticTranslations();
+          updateEventTypeOptionLabels();
+          renderSummaryMeta();
+          renderRows(state.items);
+          updatePagination();
+        });
+      }
+
+      applyStaticTranslations();
+      renderSummaryMeta();
+      updatePagination();
+      await loadMeta();
+      await loadEvents();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Terms of Service - 42 Network Pulse</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .switch-links {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+      [data-lang-panel][hidden] {
+        display: none;
+      }
+
+      .legal-page {
+        max-width: 980px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .legal-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .legal-meta {
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .legal-content {
+        line-height: 1.7;
+      }
+
+      .legal-content h2 {
+        margin-top: 0.5rem;
+      }
+
+      .legal-content p {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .legal-content ul {
+        list-style: disc;
+        display: block;
+        max-height: none;
+        overflow: visible;
+        padding-left: 1.25rem;
+      }
+
+      .legal-content li {
+        display: list-item;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link active" aria-current="page" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="session-actions">
+        <p class="status-text" data-i18n="terms.status">Terms of Service</p>
+        <button type="button" class="ghost logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main class="legal-page">
+      <section class="panel legal-content" data-lang-panel="en">
+        <div class="legal-header">
+          <div>
+            <h2>Terms of Service</h2>
+            <p class="legal-meta">Last updated: April 27, 2026</p>
+          </div>
+        </div>
+
+        <p>
+          These Terms of Service govern your access to and use of 42 Network Pulse, including the live detector,
+          dashboards, admin views, and API data explorer provided through this application.
+        </p>
+
+        <h2>1. Acceptance</h2>
+        <p>
+          By accessing or using 42 Network Pulse, you agree to follow these terms. If you do not agree, do not use
+          the service.
+        </p>
+
+        <h2>2. Service Scope</h2>
+        <p>
+          42 Network Pulse is a data visualization and monitoring tool for inspecting API 42 related events and
+          operational signals. The service is provided for informational and internal operational use.
+        </p>
+
+        <h2>3. User Responsibilities</h2>
+        <ul>
+          <li>Use the service only for lawful, authorized, and appropriate purposes.</li>
+          <li>Keep access tokens, credentials, and administrative access private and secure.</li>
+          <li>Do not attempt to disrupt, overload, reverse engineer, or bypass protections in the service.</li>
+          <li>Do not use displayed data to harass, profile, or target individuals.</li>
+        </ul>
+
+        <h2>4. Data and Privacy</h2>
+        <p>
+          The service may display event data, campus identifiers, timestamps, and other API-derived information.
+          Handle this data with care. Access to the service does not grant permission to export, redistribute, or
+          misuse personal or sensitive information.
+        </p>
+
+        <h2>5. Third-Party Services</h2>
+        <p>
+          The service may rely on API 42 or other external systems. Your use of those systems may also be governed by
+          their own terms, policies, and technical limits.
+        </p>
+
+        <h2>6. Availability and Accuracy</h2>
+        <p>
+          The service is provided as available. Event streams, dashboards, and API payloads may be delayed, incomplete,
+          unavailable, or inaccurate. Do not rely on the service as the sole source for critical decisions.
+        </p>
+
+        <h2>7. Changes</h2>
+        <p>
+          These terms may be updated from time to time. Continued use of the service after changes are published means
+          you accept the updated terms.
+        </p>
+
+        <h2>8. Contact</h2>
+        <p>
+          For questions about these terms or the operation of the service, contact the project maintainer or system
+          administrator responsible for this deployment.
+        </p>
+      </section>
+      <section class="panel legal-content" data-lang-panel="fr" hidden>
+        <div class="legal-header">
+          <div>
+            <h2>Conditions d'utilisation</h2>
+            <p class="legal-meta">Dernière mise à jour : 27 avril 2026</p>
+          </div>
+        </div>
+
+        <p>
+          Les présentes conditions d'utilisation régissent votre accès à 42 Network Pulse et son usage, y compris le
+          détecteur en direct, les tableaux de bord, les vues d'administration et l'explorateur de données API fournis
+          par cette application.
+        </p>
+
+        <h2>1. Acceptation</h2>
+        <p>
+          En accédant à 42 Network Pulse ou en l'utilisant, vous acceptez de respecter ces conditions. Si vous ne les
+          acceptez pas, n'utilisez pas le service.
+        </p>
+
+        <h2>2. Périmètre du service</h2>
+        <p>
+          42 Network Pulse est un outil de visualisation et de supervision destiné à inspecter des événements liés à
+          l'API 42 et des signaux opérationnels. Le service est fourni à des fins d'information et d'exploitation
+          interne.
+        </p>
+
+        <h2>3. Responsabilités des utilisateurs</h2>
+        <ul>
+          <li>Utiliser le service uniquement à des fins légales, autorisées et appropriées.</li>
+          <li>Garder les jetons d'accès, identifiants et accès administratifs privés et sécurisés.</li>
+          <li>Ne pas tenter de perturber, surcharger, rétroconcevoir ou contourner les protections du service.</li>
+          <li>Ne pas utiliser les données affichées pour harceler, profiler ou cibler des personnes.</li>
+        </ul>
+
+        <h2>4. Données et confidentialité</h2>
+        <p>
+          Le service peut afficher des données d'événements, des identifiants de campus, des horodatages et d'autres
+          informations issues d'API. Manipulez ces données avec soin. L'accès au service ne donne pas l'autorisation
+          d'exporter, de redistribuer ou d'utiliser abusivement des informations personnelles ou sensibles.
+        </p>
+
+        <h2>5. Services tiers</h2>
+        <p>
+          Le service peut s'appuyer sur l'API 42 ou d'autres systèmes externes. Votre utilisation de ces systèmes peut
+          également être régie par leurs propres conditions, politiques et limites techniques.
+        </p>
+
+        <h2>6. Disponibilité et exactitude</h2>
+        <p>
+          Le service est fourni selon sa disponibilité. Les flux d'événements, tableaux de bord et réponses API peuvent
+          être retardés, incomplets, indisponibles ou inexacts. Ne vous appuyez pas sur le service comme seule source
+          pour des décisions critiques.
+        </p>
+
+        <h2>7. Modifications</h2>
+        <p>
+          Ces conditions peuvent être mises à jour de temps à autre. La poursuite de l'utilisation du service après
+          publication des changements signifie que vous acceptez les conditions mises à jour.
+        </p>
+
+        <h2>8. Contact</h2>
+        <p>
+          Pour toute question concernant ces conditions ou le fonctionnement du service, contactez le responsable du
+          projet ou l'administrateur système chargé de ce déploiement.
+        </p>
+      </section>
+      <section class="panel legal-content" data-lang-panel="es" hidden>
+        <div class="legal-header">
+          <div>
+            <h2>Términos de servicio</h2>
+            <p class="legal-meta">Última actualización: 27 de abril de 2026</p>
+          </div>
+        </div>
+
+        <p>
+          Estos términos de servicio regulan tu acceso y uso de 42 Network Pulse, incluido el detector en vivo,
+          los paneles, las vistas de administración y el explorador de datos de API proporcionados por esta aplicación.
+        </p>
+
+        <h2>1. Aceptación</h2>
+        <p>
+          Al acceder a 42 Network Pulse o utilizarlo, aceptas cumplir estos términos. Si no estás de acuerdo, no uses
+          el servicio.
+        </p>
+
+        <h2>2. Alcance del servicio</h2>
+        <p>
+          42 Network Pulse es una herramienta de visualización y monitoreo de datos para inspeccionar eventos
+          relacionados con API 42 y señales operativas. El servicio se proporciona con fines informativos y de
+          operación interna.
+        </p>
+
+        <h2>3. Responsabilidades del usuario</h2>
+        <ul>
+          <li>Usar el servicio solo con fines legales, autorizados y apropiados.</li>
+          <li>Mantener privados y seguros los tokens de acceso, credenciales y accesos administrativos.</li>
+          <li>No intentar interrumpir, sobrecargar, aplicar ingeniería inversa ni eludir las protecciones del servicio.</li>
+          <li>No usar los datos mostrados para acosar, perfilar o dirigirse a personas.</li>
+        </ul>
+
+        <h2>4. Datos y privacidad</h2>
+        <p>
+          El servicio puede mostrar datos de eventos, identificadores de campus, marcas temporales y otra información
+          derivada de API. Trata estos datos con cuidado. El acceso al servicio no concede permiso para exportar,
+          redistribuir o usar indebidamente información personal o sensible.
+        </p>
+
+        <h2>5. Servicios de terceros</h2>
+        <p>
+          El servicio puede depender de API 42 u otros sistemas externos. Tu uso de esos sistemas también puede estar
+          regido por sus propios términos, políticas y límites técnicos.
+        </p>
+
+        <h2>6. Disponibilidad y exactitud</h2>
+        <p>
+          El servicio se proporciona según disponibilidad. Los flujos de eventos, paneles y respuestas API pueden estar
+          retrasados, incompletos, no disponibles o ser inexactos. No dependas del servicio como única fuente para
+          decisiones críticas.
+        </p>
+
+        <h2>7. Cambios</h2>
+        <p>
+          Estos términos pueden actualizarse ocasionalmente. El uso continuado del servicio después de publicar cambios
+          significa que aceptas los términos actualizados.
+        </p>
+
+        <h2>8. Contacto</h2>
+        <p>
+          Para preguntas sobre estos términos o sobre el funcionamiento del servicio, contacta con la persona
+          responsable del proyecto o con el administrador del sistema encargado de este despliegue.
+        </p>
+      </section>
+    </main>
+    <script>
+      const LANGUAGE_KEY = "42-pulse.language";
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "terms.status": "Terms of Service",
+          "page.title": "Terms of Service - 42 Network Pulse",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "terms.status": "Conditions d'utilisation",
+          "page.title": "Conditions d'utilisation - 42 Network Pulse",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "terms.status": "Términos de servicio",
+          "page.title": "Términos de servicio - 42 Network Pulse",
+        },
+      };
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key) {
+        const lang = getLanguage();
+        return I18N[lang]?.[key] || I18N.en[key] || key;
+      }
+
+      function applyLanguage() {
+        const lang = getLanguage();
+        document.documentElement.lang = lang;
+        document.title = t("page.title");
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+        document.querySelectorAll("[data-lang-panel]").forEach((node) => {
+          node.hidden = node.dataset.langPanel !== lang;
+        });
+      }
+
+      const languageSelect = document.getElementById("language-select");
+      if (languageSelect) {
+        languageSelect.value = getLanguage();
+        languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, languageSelect.value);
+          applyLanguage();
+        });
+      }
+      applyLanguage();
+    </script>
+  </body>
+</html>

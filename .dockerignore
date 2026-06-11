@@ -1,0 +1,16 @@
+frontend/
+app/web/
+infra/
+docs/
+tests/
+scripts/
+sql/
+security_gateway/
+for_merging/
+security_iv5/
+*.tar
+*.md
+Makefile*
+.git/
+data/
+runtime/

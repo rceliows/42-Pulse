@@ -1,0 +1,498 @@
+x-agents-common: &agents-common
+  restart: unless-stopped
+  user: "${HOST_UID:?HOST_UID is required}:${HOST_GID:?HOST_GID is required}"
+  env_file:
+    - ${ENV_ROOT:-../..}/.env
+  environment: &agents-env
+    DB_HOST: db
+    DB_PORT: 5432
+    DB_NAME: ${DB_NAME:-api42}
+    DB_USER: ${DB_USER:-api42}
+    DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    CAMPUS_ID: ${CAMPUS_ID:-21}
+    ROOT_DIR: /app
+    RUNTIME_DIR: /app
+  volumes:
+    - type: bind
+      source: ${PROJECT_ROOT:-..}/.oauth_state
+      target: /app/.oauth_state
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${RUNTIME_ROOT:-../../runtime}/backlog
+      target: /app/backlog
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${RUNTIME_ROOT:-../../runtime}/logs
+      target: /app/logs
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${RUNTIME_ROOT:-../../runtime}/exports
+      target: /app/exports
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${RUNTIME_ROOT:-../../runtime}/cache
+      target: /app/cache
+      bind:
+        create_host_path: false
+  networks:
+    - transcendence
+
+services:
+
+  # PostgreSQL: data storage
+  db:
+    image: postgres:16
+    container_name: transcendence_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-api42} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: ${DB_USER:-api42}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-api42}
+    volumes:
+      - type: bind
+        source: ${DB_DATA_DIR:-../../data/postgres}
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: true
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - transcendence
+      - monitoring
+
+  # Nginx: serve static files + proxy to Node.js API
+  web:
+    image: nginx:alpine
+    container_name: transcendence_web
+    restart: unless-stopped
+    depends_on:
+      - db
+      - api
+    volumes:
+      - type: bind
+        source: ${PROJECT_ROOT:-..}/app/web/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PROJECT_ROOT:-..}/app/web/dist
+        target: /usr/share/nginx/html
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RUNTIME_ROOT:-../../runtime}/exports
+        target: /usr/share/nginx/html/api
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8050}:80"
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O /dev/null http://127.0.0.1/ >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - transcendence
+      - monitoring
+
+  # Node.js API: WebSocket + real-time updates
+  api:
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/api/Dockerfile
+    image: transcendence/api:latest
+    pull_policy: never
+    container_name: transcendence_api
+    restart: unless-stopped
+    user: "${HOST_UID:?HOST_UID is required}:${HOST_GID:?HOST_GID is required}"
+    group_add:
+      - "${DOCKER_GID:-100}"
+    depends_on:
+      - db
+    volumes:
+      - type: bind
+        source: ${PROJECT_ROOT:-..}/.oauth_state
+        target: /app/.oauth_state
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RUNTIME_ROOT:-../../runtime}/logs
+        target: /app/logs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RUNTIME_ROOT:-../../runtime}/exports
+        target: /app/exports
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RUNTIME_ROOT:-../../runtime}/backlog
+        target: /app/backlog
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-api42}
+      DB_USER: ${DB_USER:-api42}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      USER_DATA_STALE_AFTER_S: ${USER_DATA_STALE_AFTER_S:-600}
+      AUTO_MAINTENANCE_INTERVAL_S: ${AUTO_MAINTENANCE_INTERVAL_S:-3600}
+      ADMIN_API42_HEALTH_CACHE_S: ${ADMIN_API42_HEALTH_CACHE_S:-60}
+      ROOT_DIR: /app
+      RUNTIME_DIR: /app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O /dev/null http://127.0.0.1:3000/api/events/latest >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - transcendence
+
+  # Detector: polls API for updated users and enqueues IDs
+  detector:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/detector/Dockerfile
+    image: transcendence/detector:latest
+    pull_policy: never
+    container_name: transcendence_detector
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      DETECTOR_INTERVAL: 15
+      TIME_WINDOW: 65
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f detector-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Fetcher internal (internal queue)
+  fetcher_internal:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/fetcher/Dockerfile
+    image: transcendence/fetcher:latest
+    pull_policy: never
+    container_name: transcendence_fetcher_internal
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      RATE_LIMIT_DELAY: 10.0
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f fetcher-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # External fetchers (3 workers, 500ms stagger to avoid same-time API calls)
+  fetcher-external-1:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/fetcher/Dockerfile
+    image: transcendence/fetcher:latest
+    pull_policy: never
+    container_name: transcendence_fetcher_external_1
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      RATE_LIMIT_DELAY: 20.0
+      FETCH_QUEUE_FILE: /app/backlog/fetch_queue_external.txt
+      FETCHER_SLOT_MS: 500
+      FETCHER_SLOT_COUNT: 3
+      FETCHER_SLOT_INDEX: 0
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f fetcher-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  fetcher-external-2:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/fetcher/Dockerfile
+    image: transcendence/fetcher:latest
+    pull_policy: never
+    container_name: transcendence_fetcher_external_2
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      RATE_LIMIT_DELAY: 20.0
+      FETCH_QUEUE_FILE: /app/backlog/fetch_queue_external.txt
+      FETCHER_SLOT_MS: 500
+      FETCHER_SLOT_COUNT: 3
+      FETCHER_SLOT_INDEX: 1
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f fetcher-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  fetcher-external-3:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/fetcher/Dockerfile
+    image: transcendence/fetcher:latest
+    pull_policy: never
+    container_name: transcendence_fetcher_external_3
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      RATE_LIMIT_DELAY: 20.0
+      FETCH_QUEUE_FILE: /app/backlog/fetch_queue_external.txt
+      FETCHER_SLOT_MS: 500
+      FETCHER_SLOT_COUNT: 3
+      FETCHER_SLOT_INDEX: 2
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f fetcher-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Upserter users: reads process_queue and writes users into DB
+  upserter-users:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/upserter/Dockerfile
+    image: transcendence/upserter:latest
+    pull_policy: never
+    container_name: transcendence_upserter_users
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      UPSERTER_MODE: users
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f upserter-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Upserter events: reads events_queue.jsonl and writes detector_events into DB
+  upserter-events:
+    <<: *agents-common
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/upserter/Dockerfile
+    image: transcendence/upserter:latest
+    pull_policy: never
+    container_name: transcendence_upserter_events
+    depends_on:
+      - db
+    environment:
+      <<: *agents-env
+      UPSERTER_MODE: events
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f upserter-agent >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Ops maintenance scheduler: periodic maintenance + cleanup
+  maintenance-scheduler:
+    build:
+      context: ${PROJECT_ROOT:-..}
+      dockerfile: app/maintenance-scheduler/Dockerfile
+    image: transcendence/maintenance-scheduler:latest
+    pull_policy: never
+    container_name: transcendence_maintenance_scheduler
+    restart: unless-stopped
+    user: "${HOST_UID:?HOST_UID is required}:${HOST_GID:?HOST_GID is required}"
+    group_add:
+      - "${DOCKER_GID:-100}"
+    depends_on:
+      - db
+    env_file:
+      - ${ENV_ROOT:-../..}/.env
+    environment:
+      ROOT_DIR: /srv/42_Network/repo
+      REPO_ROOT: /srv/42_Network/repo
+      RUNTIME_DIR: /srv/42_Network/runtime
+      OPS_AGENT: /srv/42_Network/runtime/cache/bin/ops-agent
+      TOKEN_MANAGER_BINARY: /srv/42_Network/runtime/cache/bin/token-manager-agent
+      AUTO_MAINTENANCE_INTERVAL_S: ${AUTO_MAINTENANCE_INTERVAL_S:-3600}
+      AUTO_MAINTENANCE_REMOVE_ORPHANS: ${AUTO_MAINTENANCE_REMOVE_ORPHANS:-0}
+      MAINTENANCE_SCHEDULER_PID_FILE: /srv/42_Network/runtime/logs/pids/maintenance_scheduler_container.pid
+      HEALTH_WARN_FETCH_QUEUE_INTERNAL_MAX: ${HEALTH_WARN_FETCH_QUEUE_INTERNAL_MAX:-200}
+      HEALTH_DEGRADED_FETCH_QUEUE_EXTERNAL_MAX: ${HEALTH_DEGRADED_FETCH_QUEUE_EXTERNAL_MAX:-1000}
+      HEALTH_DEGRADED_PROCESS_QUEUE_MAX: ${HEALTH_DEGRADED_PROCESS_QUEUE_MAX:-200}
+      ENV_ROOT: /srv/42_Network
+      PROJECT_ROOT: /srv/42_Network/repo
+      RUNTIME_ROOT: /srv/42_Network/runtime
+      DATA_ROOT: /srv/42_Network/data
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      DOCKER_GID: ${DOCKER_GID:-100}
+    volumes:
+      - type: bind
+        source: ${ENV_ROOT:-../..}
+        target: /srv/42_Network
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "pid=$$(cat /srv/42_Network/runtime/logs/pids/maintenance_scheduler_container.pid 2>/dev/null || true); [ -n \"$$pid\" ] && kill -0 \"$$pid\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - transcendence
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: transcendence_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ../app/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - monitoring
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: transcendence_cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: transcendence_node_exporter
+    restart: unless-stopped
+    expose:
+      - "9100"
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      - --collector.systemd
+      - --collector.processes
+      - --collector.interrupts
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: transcendence_postgres_exporter
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATA_SOURCE_URI: "db:5432/${DB_NAME:-api42}?sslmode=disable"
+      DATA_SOURCE_USER: "${DB_USER:-api42}"
+      DATA_SOURCE_PASS: "${DB_PASSWORD:?DB_PASSWORD is required}"
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: transcendence_nginx_exporter
+    command:
+      - "--nginx.scrape-uri=http://web:8080/stub_status"
+    ports:
+      - "9113:9113"
+    depends_on:
+      - web
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: transcendence_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../app/monitoring/grafana/provisioning/:/etc/grafana/provisioning:ro
+      - ../app/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - postgres-exporter
+      - node-exporter
+      - nginx-exporter
+
+volumes:
+  grafana_data:
+  prometheus_data:
+
+networks:
+  transcendence:
+    driver: bridge
+  monitoring:
+    driver: bridge

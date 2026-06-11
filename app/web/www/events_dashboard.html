@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>42 Network - DB Dashboard</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .switch-links {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+
+      .stat-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem;
+        background: var(--panel-muted);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        min-width: 0;
+      }
+
+      .stat-k {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .stat-v {
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 1.35rem;
+      }
+
+      .pulse-hero .stat-v {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1;
+      }
+
+      .pulse-hero {
+        border-width: 2px;
+      }
+
+      .pulse-tier-low {
+        border-color: rgba(53, 222, 140, 0.5);
+        box-shadow: inset 0 0 0 1px rgba(53, 222, 140, 0.14);
+      }
+
+      .pulse-tier-medium {
+        border-color: rgba(155, 220, 93, 0.52);
+        box-shadow: inset 0 0 0 1px rgba(155, 220, 93, 0.16);
+      }
+
+      .pulse-tier-high {
+        border-color: rgba(255, 191, 105, 0.55);
+        box-shadow: inset 0 0 0 1px rgba(255, 191, 105, 0.16);
+      }
+
+      .pulse-tier-very_high {
+        border-color: rgba(255, 107, 107, 0.62);
+        box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.2);
+      }
+
+      .pulse-level {
+        font-size: 0.84rem;
+      }
+
+      .hist-wrap {
+        margin-top: 0.5rem;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.7rem;
+        background: var(--panel-muted);
+      }
+
+      .histogram {
+        min-width: 1040px;
+        display: grid;
+        grid-template-columns: repeat(24, minmax(34px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .bar-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem;
+        min-width: 0;
+      }
+
+      .bar-value {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
+
+      .bar-track {
+        width: 100%;
+        height: 160px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        display: flex;
+        align-items: flex-end;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        width: 100%;
+        border-radius: 6px 6px 0 0;
+        background: linear-gradient(180deg, #2d9cdb, #27ae60);
+      }
+
+      .bar-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.55rem 0.65rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+        background: var(--panel-muted);
+      }
+
+      td {
+        font-size: 0.9rem;
+      }
+
+      tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .campus-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-width: 0;
+      }
+
+      .flag {
+        width: 18px;
+        height: 18px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+
+      .toggle-btn {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.84rem;
+      }
+
+      @media (max-width: 1400px) {
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 900px) {
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link active" aria-current="page" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="session-actions">
+        <p class="status-text" id="status-text" data-i18n="status.loading">Loading dashboard...</p>
+        <button type="button" class="ghost logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-header">
+          <h2 data-i18n="dashboard.title">Detector Events Dashboard</h2>
+          <div class="meta">
+            <span class="pill" id="pill-source">source=detector_events</span>
+            <span class="pill" id="pill-window">window=24h</span>
+            <span class="pill" id="pill-updated">updated=—</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="stat-card pulse-hero" id="pulse-hero">
+            <div class="stat-k" data-i18n="stats.pulses_last_hour">Pulses - rolling last 1h</div>
+            <div class="stat-v" id="pulse-now">0</div>
+            <div class="stat-k pulse-level" id="pulse-level">-</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-k" data-i18n="stats.pulses_window">Pulses - last 24h</div>
+            <div class="stat-v" id="pulses-window">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-k" data-i18n="stats.users_window">Unique users - last 24h</div>
+            <div class="stat-v" id="users-window">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-k" data-i18n="stats.users_db">Unique users - detector_events DB</div>
+            <div class="stat-v" id="users-db">0</div>
+          </article>
+        </div>
+
+        <h3 style="margin: 0.7rem 0 0 0;" data-i18n="histogram.title">Pulses histogram by hour - rolling last 24h (UTC)</h3>
+        <div class="hist-wrap">
+          <div class="histogram" id="histogram"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2 id="group-title" data-i18n="group.campuses_title">Campuses ordered by pulses - last 24h</h2>
+          <div class="meta">
+            <button type="button" class="ghost toggle-btn" id="group-toggle" data-i18n="group.toggle_campuses">Group: campuses</button>
+            <span class="pill" id="campus-count">campuses=0</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th id="group-id-col-label" data-i18n="table.campus_id">Campus ID</th>
+                <th id="group-col-label" data-i18n="table.campus">Campus</th>
+                <th data-i18n="table.pulses">Pulses</th>
+                <th data-i18n="table.unique_users">Unique users</th>
+                <th data-i18n="table.share">Share (%)</th>
+              </tr>
+            </thead>
+            <tbody id="campus-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      const REFRESH_MS = 10000;
+      const HOURS = 24;
+      const FLAG_VERSION = "20251220b";
+      const LANGUAGE_KEY = "42-pulse.language";
+
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "page.title": "42 Network - DB Dashboard",
+          "status.loading": "Loading dashboard...",
+          "status.loaded": "Loaded dashboard - {time} UTC",
+          "status.error": "Dashboard error: {message}",
+          "dashboard.title": "Detector Events Dashboard",
+          "stats.pulses_last_hour": "Pulses - rolling last 1h",
+          "stats.pulses_window": "Pulses - last 24h",
+          "stats.users_window": "Unique users - last 24h",
+          "stats.users_db": "Unique users - detector_events DB",
+          "histogram.title": "Pulses histogram by hour - rolling last 24h (UTC)",
+          "histogram.empty": "No detector_events in the selected window.",
+          "histogram.tooltip": "{time} UTC -> {count} pulses",
+          "group.campuses_title": "Campuses ordered by pulses - last 24h",
+          "group.countries_title": "Countries ordered by pulses - last 24h",
+          "group.toggle_campuses": "Group: campuses",
+          "group.toggle_countries": "Group: countries",
+          "group.campuses_count": "campuses={count}",
+          "group.countries_count": "countries={count}",
+          "group.no_campuses": "No campus data for last 24h.",
+          "group.no_countries": "No country data for last 24h.",
+          "table.campus_id": "Campus ID",
+          "table.campus": "Campus",
+          "table.iso": "ISO",
+          "table.country": "Country",
+          "table.pulses": "Pulses",
+          "table.unique_users": "Unique users",
+          "table.share": "Share (%)",
+          "pill.source": "source={source}",
+          "pill.window": "window={hours}h",
+          "pill.updated": "updated={time}",
+          "flag": "flag",
+          "country_flag": "{country} flag",
+          "country.unknown": "Unknown",
+          "campus.unknown": "campus {id}",
+          "intensity.low": "<500 low",
+          "intensity.medium": "500+ medium",
+          "intensity.high": "1000+ high",
+          "intensity.very_high_1500": "1500+ very high",
+          "intensity.very_high_2000": "2000+ very high",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "page.title": "42 Network - Tableau DB",
+          "status.loading": "Chargement du tableau...",
+          "status.loaded": "Tableau chargé - {time} UTC",
+          "status.error": "Erreur du tableau : {message}",
+          "dashboard.title": "Tableau des événements du détecteur",
+          "stats.pulses_last_hour": "Pulses - dernière heure glissante",
+          "stats.pulses_window": "Pulses - dernières 24h",
+          "stats.users_window": "Utilisateurs uniques - dernières 24h",
+          "stats.users_db": "Utilisateurs uniques - DB detector_events",
+          "histogram.title": "Histogramme des pulses par heure - dernières 24h glissantes (UTC)",
+          "histogram.empty": "Aucun detector_events dans la fenêtre sélectionnée.",
+          "histogram.tooltip": "{time} UTC -> {count} pulses",
+          "group.campuses_title": "Campus triés par pulses - dernières 24h",
+          "group.countries_title": "Pays triés par pulses - dernières 24h",
+          "group.toggle_campuses": "Groupe : campus",
+          "group.toggle_countries": "Groupe : pays",
+          "group.campuses_count": "campus={count}",
+          "group.countries_count": "pays={count}",
+          "group.no_campuses": "Aucune donnée campus sur les dernières 24h.",
+          "group.no_countries": "Aucune donnée pays sur les dernières 24h.",
+          "table.campus_id": "ID campus",
+          "table.campus": "Campus",
+          "table.iso": "ISO",
+          "table.country": "Pays",
+          "table.pulses": "Pulses",
+          "table.unique_users": "Utilisateurs uniques",
+          "table.share": "Part (%)",
+          "pill.source": "source={source}",
+          "pill.window": "fenêtre={hours}h",
+          "pill.updated": "maj={time}",
+          "flag": "drapeau",
+          "country_flag": "drapeau {country}",
+          "country.unknown": "Inconnu",
+          "campus.unknown": "campus {id}",
+          "intensity.low": "<500 faible",
+          "intensity.medium": "500+ moyen",
+          "intensity.high": "1000+ élevé",
+          "intensity.very_high_1500": "1500+ très élevé",
+          "intensity.very_high_2000": "2000+ très élevé",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "page.title": "42 Network - Panel DB",
+          "status.loading": "Cargando panel...",
+          "status.loaded": "Panel cargado - {time} UTC",
+          "status.error": "Error del panel: {message}",
+          "dashboard.title": "Panel de eventos del detector",
+          "stats.pulses_last_hour": "Pulses - última hora móvil",
+          "stats.pulses_window": "Pulses - últimas 24h",
+          "stats.users_window": "Usuarios únicos - últimas 24h",
+          "stats.users_db": "Usuarios únicos - DB detector_events",
+          "histogram.title": "Histograma de pulses por hora - últimas 24h móviles (UTC)",
+          "histogram.empty": "No hay detector_events en la ventana seleccionada.",
+          "histogram.tooltip": "{time} UTC -> {count} pulses",
+          "group.campuses_title": "Campus ordenados por pulses - últimas 24h",
+          "group.countries_title": "Países ordenados por pulses - últimas 24h",
+          "group.toggle_campuses": "Grupo: campus",
+          "group.toggle_countries": "Grupo: países",
+          "group.campuses_count": "campus={count}",
+          "group.countries_count": "países={count}",
+          "group.no_campuses": "No hay datos de campus en las últimas 24h.",
+          "group.no_countries": "No hay datos de país en las últimas 24h.",
+          "table.campus_id": "ID de campus",
+          "table.campus": "Campus",
+          "table.iso": "ISO",
+          "table.country": "País",
+          "table.pulses": "Pulses",
+          "table.unique_users": "Usuarios únicos",
+          "table.share": "Porcentaje (%)",
+          "pill.source": "fuente={source}",
+          "pill.window": "ventana={hours}h",
+          "pill.updated": "act={time}",
+          "flag": "bandera",
+          "country_flag": "bandera de {country}",
+          "country.unknown": "Desconocido",
+          "campus.unknown": "campus {id}",
+          "intensity.low": "<500 bajo",
+          "intensity.medium": "500+ medio",
+          "intensity.high": "1000+ alto",
+          "intensity.very_high_1500": "1500+ muy alto",
+          "intensity.very_high_2000": "2000+ muy alto",
+        },
+      };
+
+      const COUNTRY_LABELS = {
+        fr: {
+          Angola: "Angola",
+          Armenia: "Arménie",
+          Australia: "Australie",
+          Austria: "Autriche",
+          Belgium: "Belgique",
+          Brazil: "Brésil",
+          Canada: "Canada",
+          "Czech Republic": "République tchèque",
+          Finland: "Finlande",
+          France: "France",
+          Germany: "Allemagne",
+          Italy: "Italie",
+          Japan: "Japon",
+          Jordan: "Jordanie",
+          "Korea, Republic of": "Corée du Sud",
+          Lebanon: "Liban",
+          Luxembourg: "Luxembourg",
+          Madagascar: "Madagascar",
+          Malaysia: "Malaisie",
+          Morocco: "Maroc",
+          Netherlands: "Pays-Bas",
+          "Palestine, State of": "Palestine",
+          Poland: "Pologne",
+          Portugal: "Portugal",
+          Singapore: "Singapour",
+          Spain: "Espagne",
+          Switzerland: "Suisse",
+          Thailand: "Thaïlande",
+          Turkey: "Turquie",
+          "United Arab Emirates": "Émirats arabes unis",
+          "United Kingdom": "Royaume-Uni",
+        },
+        es: {
+          Angola: "Angola",
+          Armenia: "Armenia",
+          Australia: "Australia",
+          Austria: "Austria",
+          Belgium: "Bélgica",
+          Brazil: "Brasil",
+          Canada: "Canadá",
+          "Czech Republic": "República Checa",
+          Finland: "Finlandia",
+          France: "Francia",
+          Germany: "Alemania",
+          Italy: "Italia",
+          Japan: "Japón",
+          Jordan: "Jordania",
+          "Korea, Republic of": "Corea del Sur",
+          Lebanon: "Líbano",
+          Luxembourg: "Luxemburgo",
+          Madagascar: "Madagascar",
+          Malaysia: "Malasia",
+          Morocco: "Marruecos",
+          Netherlands: "Países Bajos",
+          "Palestine, State of": "Palestina",
+          Poland: "Polonia",
+          Portugal: "Portugal",
+          Singapore: "Singapur",
+          Spain: "España",
+          Switzerland: "Suiza",
+          Thailand: "Tailandia",
+          Turkey: "Turquía",
+          "United Arab Emirates": "Emiratos Árabes Unidos",
+          "United Kingdom": "Reino Unido",
+        },
+      };
+
+      const els = {
+        status: document.getElementById("status-text"),
+        pillSource: document.getElementById("pill-source"),
+        pillWindow: document.getElementById("pill-window"),
+        pillUpdated: document.getElementById("pill-updated"),
+        pulseHero: document.getElementById("pulse-hero"),
+        pulseNow: document.getElementById("pulse-now"),
+        pulseLevel: document.getElementById("pulse-level"),
+        pulsesWindow: document.getElementById("pulses-window"),
+        usersWindow: document.getElementById("users-window"),
+        usersDb: document.getElementById("users-db"),
+        histogram: document.getElementById("histogram"),
+        campusCount: document.getElementById("campus-count"),
+        campusBody: document.getElementById("campus-body"),
+        groupTitle: document.getElementById("group-title"),
+        groupIdColLabel: document.getElementById("group-id-col-label"),
+        groupColLabel: document.getElementById("group-col-label"),
+        groupToggle: document.getElementById("group-toggle"),
+        languageSelect: document.getElementById("language-select"),
+      };
+
+      const state = {
+        grouping: "campus",
+        lastData: null,
+      };
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key, values = {}) {
+        const lang = getLanguage();
+        const template = I18N[lang]?.[key] || I18N.en[key] || key;
+        return Object.entries(values).reduce(
+          (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+          template
+        );
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = getLanguage();
+        document.title = t("page.title");
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+      }
+
+      function translateCountry(country) {
+        const lang = getLanguage();
+        return COUNTRY_LABELS[lang]?.[country] || country || "";
+      }
+
+      function countryAlt(country) {
+        return country ? t("country_flag", { country: translateCountry(country) }) : t("flag");
+      }
+
+      function translateIntensity(intensity) {
+        const label = String(intensity?.label || "").trim();
+        if (label === "2000+ very high") return t("intensity.very_high_2000");
+        if (label === "1500+ very high") return t("intensity.very_high_1500");
+        if (label === "1000+ high") return t("intensity.high");
+        if (label === "500+ medium") return t("intensity.medium");
+        if (label === "<500 low") return t("intensity.low");
+        return label || t("intensity.low");
+      }
+
+      const CAMPUS_INFO = {
+        1: { name: "42 Paris", country: "France" },
+        9: { name: "42 Lyon", country: "France" },
+        12: { name: "42 Brussels", country: "Belgium" },
+        13: { name: "42 Helsinki", country: "Finland" },
+        14: { name: "Codam", country: "Netherlands" },
+        16: { name: "1337 Khouribga", country: "Morocco" },
+        20: { name: "42 Sao Paulo", country: "Brazil" },
+        21: { name: "1337 Ben Guerir", country: "Morocco" },
+        22: { name: "42 Madrid", country: "Spain" },
+        25: { name: "42 Quebec", country: "Canada" },
+        26: { name: "42 Tokyo", country: "Japan" },
+        28: { name: "42 Rio", country: "Brazil" },
+        29: { name: "42 Seoul", country: "Korea, Republic of" },
+        30: { name: "42 Roma", country: "Italy" },
+        31: { name: "42 Angouleme", country: "France" },
+        32: { name: "42 Yerevan", country: "Armenia" },
+        33: { name: "42 Bangkok", country: "Thailand" },
+        34: { name: "42 Kuala Lumpur", country: "Malaysia" },
+        35: { name: "42 Amman", country: "Jordan" },
+        36: { name: "42 Adelaide", country: "Australia" },
+        37: { name: "42 Malaga", country: "Spain" },
+        38: { name: "42 Lisboa", country: "Portugal" },
+        39: { name: "42 Heilbronn", country: "Germany" },
+        40: { name: "42 Urduliz", country: "Spain" },
+        41: { name: "42 Nice", country: "France" },
+        43: { name: "42 Abu Dhabi", country: "United Arab Emirates" },
+        44: { name: "42 Wolfsburg", country: "Germany" },
+        46: { name: "42 Barcelona", country: "Spain" },
+        47: { name: "42 Lausanne", country: "Switzerland" },
+        48: { name: "42 Mulhouse", country: "France" },
+        49: { name: "42 Istanbul", country: "Turkey" },
+        50: { name: "42 Kocaeli", country: "Turkey" },
+        51: { name: "42 Berlin", country: "Germany" },
+        52: { name: "42 Firenze", country: "Italy" },
+        53: { name: "42 Vienna", country: "Austria" },
+        55: { name: "1337 Med", country: "Morocco" },
+        56: { name: "42 Prague", country: "Czech Republic" },
+        57: { name: "42 London", country: "United Kingdom" },
+        58: { name: "42 Porto", country: "Portugal" },
+        59: { name: "42 Luxembourg", country: "Luxembourg" },
+        60: { name: "42 Perpignan", country: "France" },
+        61: { name: "42 Belo Horizonte", country: "Brazil" },
+        62: { name: "42 Le Havre", country: "France" },
+        64: { name: "42 Singapore", country: "Singapore" },
+        65: { name: "42 Antananarivo", country: "Madagascar" },
+        67: { name: "42 Warsaw", country: "Poland" },
+        68: { name: "42 Luanda", country: "Angola" },
+        69: { name: "42 Gyeongsan", country: "Korea, Republic of" },
+        70: { name: "42 Nablus", country: "Palestine, State of" },
+        71: { name: "42 Beirut", country: "Lebanon" },
+        72: { name: "42 Milano", country: "Italy" },
+        73: { name: "42 Iskandar Puteri", country: "Malaysia" },
+        75: { name: "1337 Rabat", country: "Morocco" },
+        76: { name: "42 Al-Ain", country: "United Arab Emirates" },
+      };
+
+      const COUNTRY_TO_ISO = {
+        Angola: "AO",
+        Armenia: "AM",
+        Australia: "AU",
+        Austria: "AT",
+        Belgium: "BE",
+        Brazil: "BR",
+        Canada: "CA",
+        "Czech Republic": "CZ",
+        Finland: "FI",
+        France: "FR",
+        Germany: "DE",
+        Italy: "IT",
+        Japan: "JP",
+        Jordan: "JO",
+        "Korea, Republic of": "KR",
+        Lebanon: "LB",
+        Luxembourg: "LU",
+        Madagascar: "MG",
+        Malaysia: "MY",
+        Morocco: "MA",
+        Netherlands: "NL",
+        "Palestine, State of": "PS",
+        Poland: "PL",
+        Portugal: "PT",
+        Singapore: "SG",
+        Spain: "ES",
+        Switzerland: "CH",
+        Thailand: "TH",
+        Turkey: "TR",
+        "United Arab Emirates": "AE",
+        "United Kingdom": "GB",
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function fmtInt(value) {
+        const n = Number(value || 0);
+        const locale = getLanguage() === "fr" ? "fr-FR" : "en-US";
+        return Number.isFinite(n) ? n.toLocaleString(locale) : "0";
+      }
+
+      function fmtNumber(value, digits = 2) {
+        const n = Number(value || 0);
+        return Number.isFinite(n) ? n.toFixed(digits) : "0.00";
+      }
+
+      function fmtUtcDateTime(value) {
+        if (!value) return "-";
+        const t = Date.parse(String(value));
+        if (!Number.isFinite(t)) return "-";
+        return new Date(t).toISOString().slice(0, 19).replace("T", " ");
+      }
+
+      function hourLabel(isoUtc) {
+        if (!isoUtc) return "--:--";
+        const t = Date.parse(String(isoUtc));
+        if (!Number.isFinite(t)) return "--:--";
+        return new Date(t).toISOString().slice(11, 16);
+      }
+
+      function isoToFlagSvg(isoCode) {
+        if (!isoCode) return "";
+        const upper = String(isoCode).toUpperCase();
+        if (!/^[A-Z]{2}$/.test(upper)) return "";
+        const a = 0x1f1e6 + (upper.charCodeAt(0) - 65);
+        const b = 0x1f1e6 + (upper.charCodeAt(1) - 65);
+        return `${a.toString(16)}-${b.toString(16)}`;
+      }
+
+      function countryFlagSvg(country) {
+        if (!country) return "";
+        const iso = COUNTRY_TO_ISO[country];
+        return isoToFlagSvg(iso);
+      }
+
+      function campusParts(campusId, campusName, campusCountry) {
+        const idLabel = campusId === null || campusId === undefined ? "?" : String(campusId);
+        const staticInfo = CAMPUS_INFO[idLabel] || CAMPUS_INFO[campusId];
+        const trimmedName = String(campusName || "").trim();
+        const trimmedCountry = String(campusCountry || "").trim();
+        const resolvedName = staticInfo?.name || trimmedName;
+        const resolvedCountry = staticInfo?.country || trimmedCountry;
+        if (!resolvedName) {
+          return {
+            label: t("campus.unknown", { id: idLabel }),
+            country: "",
+            flagSvg: "",
+          };
+        }
+        return {
+          label: resolvedCountry ? `${resolvedName} · ${translateCountry(resolvedCountry)}` : resolvedName,
+          country: resolvedCountry,
+          flagSvg: countryFlagSvg(resolvedCountry),
+        };
+      }
+
+      function setPulseTierClass(tier) {
+        const classes = ["pulse-tier-low", "pulse-tier-medium", "pulse-tier-high", "pulse-tier-very_high"];
+        for (const className of classes) {
+          els.pulseHero.classList.remove(className);
+        }
+        if (tier === "very_high") {
+          els.pulseHero.classList.add("pulse-tier-very_high");
+        } else if (tier === "high") {
+          els.pulseHero.classList.add("pulse-tier-high");
+        } else if (tier === "medium") {
+          els.pulseHero.classList.add("pulse-tier-medium");
+        } else {
+          els.pulseHero.classList.add("pulse-tier-low");
+        }
+      }
+
+      function renderHistogram(histogram) {
+        if (!Array.isArray(histogram) || histogram.length === 0) {
+          els.histogram.innerHTML = `<div class="mono">${escapeHtml(t("histogram.empty"))}</div>`;
+          return;
+        }
+
+        const max = Math.max(1, ...histogram.map((item) => Number(item.pulses || 0)));
+        els.histogram.innerHTML = histogram
+          .map((item) => {
+            const pulses = Number(item.pulses || 0);
+            const barHeight = Math.max(4, Math.round((pulses / max) * 150));
+            const time = hourLabel(item.hour_utc);
+            const tooltip = t("histogram.tooltip", {
+              time: fmtUtcDateTime(item.hour_utc),
+              count: fmtInt(pulses),
+            });
+            return `<div class="bar-col" title="${escapeHtml(tooltip)}">
+              <div class="bar-value mono">${fmtInt(pulses)}</div>
+              <div class="bar-track">
+                <div class="bar-fill" style="height:${barHeight}px"></div>
+              </div>
+              <div class="bar-label mono">${escapeHtml(time)}</div>
+            </div>`;
+          })
+          .join("");
+      }
+
+      function renderCampuses(campuses) {
+        if (!Array.isArray(campuses) || campuses.length === 0) {
+          els.campusBody.innerHTML = `<tr><td colspan="6" class="mono">${escapeHtml(t("group.no_campuses"))}</td></tr>`;
+          els.campusCount.textContent = t("group.campuses_count", { count: 0 });
+          return;
+        }
+
+        els.campusCount.textContent = t("group.campuses_count", { count: fmtInt(campuses.length) });
+        els.campusBody.innerHTML = campuses
+          .map((row) => {
+            const campus = campusParts(row.campus_id, row.campus_name, row.campus_country);
+            const campusIdLabel =
+              row.campus_id === null || row.campus_id === undefined ? "?" : String(row.campus_id);
+            const flagHtml = campus.flagSvg
+              ? `<img class="flag" src="/assets/twemoji/svg/${campus.flagSvg}.svg?v=${FLAG_VERSION}" alt="${escapeHtml(
+                  countryAlt(campus.country)
+                )}" loading="lazy" decoding="async">`
+              : "";
+            return `<tr>
+              <td class="mono">${fmtInt(row.rank)}</td>
+              <td class="mono">${escapeHtml(campusIdLabel)}</td>
+              <td>
+                <div class="campus-cell">
+                  <span>${escapeHtml(campus.label)}</span>
+                  ${flagHtml}
+                </div>
+              </td>
+              <td class="mono">${fmtInt(row.pulses)}</td>
+              <td class="mono">${fmtInt(row.unique_users)}</td>
+              <td class="mono">${fmtNumber(row.share_pct, 2)}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function renderCountries(countries) {
+        if (!Array.isArray(countries) || countries.length === 0) {
+          els.campusBody.innerHTML = `<tr><td colspan="6" class="mono">${escapeHtml(t("group.no_countries"))}</td></tr>`;
+          els.campusCount.textContent = t("group.countries_count", { count: 0 });
+          return;
+        }
+
+        els.campusCount.textContent = t("group.countries_count", { count: fmtInt(countries.length) });
+        els.campusBody.innerHTML = countries
+          .map((row) => {
+            const country = String(row.country || t("country.unknown"));
+            const iso = COUNTRY_TO_ISO[country] || "-";
+            const flagSvg = countryFlagSvg(country);
+            const flagHtml = flagSvg
+              ? `<img class="flag" src="/assets/twemoji/svg/${flagSvg}.svg?v=${FLAG_VERSION}" alt="${escapeHtml(
+                  countryAlt(country)
+                )}" loading="lazy" decoding="async">`
+              : "";
+            return `<tr>
+              <td class="mono">${fmtInt(row.rank)}</td>
+              <td class="mono">${escapeHtml(iso)}</td>
+              <td>
+                <div class="campus-cell">
+                  <span>${escapeHtml(translateCountry(country))}</span>
+                  ${flagHtml}
+                </div>
+              </td>
+              <td class="mono">${fmtInt(row.pulses)}</td>
+              <td class="mono">${fmtInt(row.unique_users)}</td>
+              <td class="mono">${fmtNumber(row.share_pct, 2)}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function renderGroupedTable(data) {
+        if (state.grouping === "country") {
+          els.groupTitle.textContent = t("group.countries_title");
+          els.groupIdColLabel.textContent = t("table.iso");
+          els.groupColLabel.textContent = t("table.country");
+          els.groupToggle.textContent = t("group.toggle_countries");
+          renderCountries(data.countries_by_pulses || []);
+          return;
+        }
+
+        els.groupTitle.textContent = t("group.campuses_title");
+        els.groupIdColLabel.textContent = t("table.campus_id");
+        els.groupColLabel.textContent = t("table.campus");
+        els.groupToggle.textContent = t("group.toggle_campuses");
+        renderCampuses(data.campuses_by_pulses || []);
+      }
+
+      async function refreshDashboard() {
+        els.status.textContent = t("status.loading");
+
+        try {
+          const response = await fetch(`/api/events/db/dashboard?hours=${HOURS}`, {
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          const summary = data.summary || {};
+
+          els.pillSource.textContent = t("pill.source", { source: data.source || "detector_events" });
+          els.pillWindow.textContent = t("pill.window", { hours: Number(data.window_hours || HOURS) });
+          els.pillUpdated.textContent = t("pill.updated", { time: fmtUtcDateTime(data.timestamp_utc) });
+
+          els.pulseNow.textContent = fmtInt(summary.pulses_last_hour || 0);
+          const intensity = summary.last_hour_intensity || { tier: "low", label: "<500 low" };
+          els.pulseLevel.textContent = translateIntensity(intensity);
+          setPulseTierClass(intensity.tier || "low");
+
+          els.pulsesWindow.textContent = fmtInt(summary.pulses_window || 0);
+          els.usersWindow.textContent = fmtInt(summary.unique_users_window || 0);
+          els.usersDb.textContent = fmtInt(summary.unique_users_db || 0);
+
+          renderHistogram(data.histogram_by_hour || []);
+          state.lastData = data;
+          renderGroupedTable(data);
+
+          els.status.textContent = t("status.loaded", { time: fmtUtcDateTime(data.timestamp_utc) });
+        } catch (error) {
+          els.status.textContent = t("status.error", { message: error.message });
+        }
+      }
+
+      els.groupToggle.addEventListener("click", () => {
+        state.grouping = state.grouping === "campus" ? "country" : "campus";
+        if (state.lastData) {
+          renderGroupedTable(state.lastData);
+        }
+      });
+
+      if (els.languageSelect) {
+        els.languageSelect.value = getLanguage();
+        els.languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, els.languageSelect.value);
+          applyStaticTranslations();
+          if (state.lastData) {
+            renderHistogram(state.lastData.histogram_by_hour || []);
+            renderGroupedTable(state.lastData);
+            const summary = state.lastData.summary || {};
+            els.pillSource.textContent = t("pill.source", { source: state.lastData.source || "detector_events" });
+            els.pillWindow.textContent = t("pill.window", { hours: Number(state.lastData.window_hours || HOURS) });
+            els.pillUpdated.textContent = t("pill.updated", { time: fmtUtcDateTime(state.lastData.timestamp_utc) });
+            els.pulseNow.textContent = fmtInt(summary.pulses_last_hour || 0);
+            els.pulseLevel.textContent = translateIntensity(summary.last_hour_intensity || { tier: "low", label: "<500 low" });
+            els.pulsesWindow.textContent = fmtInt(summary.pulses_window || 0);
+            els.usersWindow.textContent = fmtInt(summary.unique_users_window || 0);
+            els.usersDb.textContent = fmtInt(summary.unique_users_db || 0);
+            els.status.textContent = t("status.loaded", { time: fmtUtcDateTime(state.lastData.timestamp_utc) });
+          } else {
+            renderGroupedTable({});
+          }
+        });
+      }
+
+      applyStaticTranslations();
+      renderGroupedTable({});
+      await refreshDashboard();
+      setInterval(refreshDashboard, REFRESH_MS);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>42 Network - Admin Status</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--text-muted);
+      }
+
+      .dot.small {
+        width: 8px;
+        height: 8px;
+      }
+
+      .dot.ok {
+        background: #35de8c;
+      }
+
+      .dot.warn {
+        background: #ffbf69;
+      }
+
+      .dot.bad {
+        background: #ff6b6b;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .list {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .list.two-cols {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      @media (max-width: 760px) {
+        .list.two-cols {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .list-item {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        background: var(--panel-muted);
+      }
+
+      .k {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .v {
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 0.95rem;
+        margin-top: 0.3rem;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      .table-wrap table {
+        min-width: 620px;
+      }
+
+      .table-wrap.compact table {
+        min-width: 760px;
+      }
+
+      .table-wrap.compact table.queue-table {
+        min-width: 0;
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      .table-wrap.compact table.queue-table th:nth-child(1),
+      .table-wrap.compact table.queue-table td:nth-child(1) {
+        width: 32%;
+        overflow-wrap: anywhere;
+      }
+
+      .table-wrap.compact table.queue-table th:nth-child(2),
+      .table-wrap.compact table.queue-table td:nth-child(2) {
+        width: 12%;
+      }
+
+      .table-wrap.compact table.queue-table th:nth-child(3),
+      .table-wrap.compact table.queue-table td:nth-child(3) {
+        width: 20%;
+      }
+
+      .table-wrap.compact table.queue-table th:nth-child(4),
+      .table-wrap.compact table.queue-table td:nth-child(4) {
+        width: 12%;
+      }
+
+      .table-wrap.compact table.queue-table th:nth-child(5),
+      .table-wrap.compact table.queue-table td:nth-child(5) {
+        width: 24%;
+      }
+
+      .table-wrap.wide table {
+        min-width: 920px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.55rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.9rem;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .compact-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .api42-meta {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.55rem;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        background: var(--panel-muted);
+      }
+
+      .badge.ok {
+        color: #35de8c;
+        border-color: rgba(53, 222, 140, 0.45);
+      }
+
+      .badge.warn {
+        color: #ffbf69;
+        border-color: rgba(255, 191, 105, 0.45);
+      }
+
+      .badge.bad {
+        color: #ff6b6b;
+        border-color: rgba(255, 107, 107, 0.45);
+      }
+
+      .switch-links {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+      .auth-button {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 980px) {
+        .status-row {
+          width: 100%;
+        }
+
+        .table-wrap.wide table {
+          min-width: 760px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link active" aria-current="page" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="dot" id="overall-dot"></span>
+        <span id="overall-text" class="status-text" data-i18n="status.loading">Loading...</span>
+        <button type="button" class="ghost auth-button logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="grid">
+        <article class="panel">
+          <h2 data-i18n="global.title">Global System Health</h2>
+          <div class="list">
+            <div class="list-item">
+              <div class="k" data-i18n="global.overall_status">Overall status</div>
+              <div class="v"><span class="badge" id="g-overall-badge">-</span></div>
+            </div>
+            <div class="list-item">
+              <div class="k" data-i18n="global.health_reason">Health reason</div>
+              <div class="v" id="g-overall-reason">-</div>
+            </div>
+            <div class="list-item">
+              <div class="k" data-i18n="global.api42_health">API 42 Health</div>
+              <div class="api42-meta">
+                <span class="badge" id="g-a42-state">-</span>
+                <span class="badge" id="g-a42-code">code: -</span>
+                <span class="badge" id="g-a42-latency">latency: -</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2 data-i18n="resources.title">System Resources</h2>
+          <div class="list two-cols">
+            <div class="list-item"><div class="k" data-i18n="resources.cpu_count">CPU count</div><div class="v" id="r-cpu-count">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="resources.load_avg">Load avg (1m, 5m, 15m)</div><div class="v" id="r-load">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="resources.memory">Memory used / total</div><div class="v" id="r-mem">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="resources.disk_used">Disk used (%)</div><div class="v" id="r-disk-used">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="resources.disk_free">Disk free (MB)</div><div class="v" id="r-disk-free">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="resources.db_size">DB size (MB)</div><div class="v" id="r-db-size">-</div></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2 data-i18n="queues.title">Queues (Internal / External / Process)</h2>
+          <div class="table-wrap compact">
+            <table class="queue-table">
+              <thead>
+                <tr>
+                  <th data-i18n="queues.queue">Queue</th>
+                  <th data-i18n="queues.count">Count</th>
+                  <th data-i18n="queues.oldest_sla">Oldest SLA (min)</th>
+                  <th data-i18n="queues.limit">Limit</th>
+                  <th data-i18n="queues.flag">Flag</th>
+                </tr>
+              </thead>
+              <tbody id="queue-body"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="services.title">Microservices Status</h2>
+        <div class="table-wrap wide">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="services.service">Service</th>
+                <th data-i18n="services.container">Container</th>
+                <th data-i18n="services.running">Running</th>
+                <th data-i18n="services.health">Health</th>
+                <th data-i18n="services.status">Status</th>
+                <th data-i18n="services.ports">Ports</th>
+              </tr>
+            </thead>
+            <tbody id="svc-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2 data-i18n="backup.title">Last Backup</h2>
+          <div class="list two-cols">
+            <div class="list-item"><div class="k" data-i18n="backup.status">Status</div><div class="v" id="b-status">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.timestamp">Timestamp (UTC)</div><div class="v" id="b-ts">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.age">Backup age</div><div class="v" id="b-age">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.file">File</div><div class="v" id="b-file">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.size">Size</div><div class="v" id="b-size">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.duration">Duration (ms)</div><div class="v" id="b-duration">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.retention">Retention (days)</div><div class="v" id="b-retention">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.pruned">Pruned files</div><div class="v" id="b-pruned">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="backup.error">Error</div><div class="v" id="b-error">-</div></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2 data-i18n="dr.title">DR Info</h2>
+          <div class="list">
+            <div class="list-item"><div class="k" data-i18n="dr.runbook">Runbook</div><div class="v" id="dr-runbook">-</div></div>
+            <div class="list-item"><div class="k" data-i18n="dr.restore">Restore command</div><div class="v" id="dr-restore">-</div></div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module">
+      const REFRESH_MS = 10000;
+      const LANGUAGE_KEY = "42-pulse.language";
+
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "status.loading": "Loading...",
+          "status.last_poll": "last poll={time}",
+          "status.fetch_failed": "status fetch failed: {message}",
+          "global.title": "Global System Health",
+          "global.overall_status": "Overall status",
+          "global.health_reason": "Health reason",
+          "global.api42_health": "API 42 Health",
+          "resources.title": "System Resources",
+          "resources.cpu_count": "CPU count",
+          "resources.load_avg": "Load avg (1m, 5m, 15m)",
+          "resources.memory": "Memory used / total",
+          "resources.disk_used": "Disk used (%)",
+          "resources.disk_free": "Disk free (MB)",
+          "resources.db_size": "DB size (MB)",
+          "queues.title": "Queues (Internal / External / Process)",
+          "queues.queue": "Queue",
+          "queues.count": "Count",
+          "queues.oldest_sla": "Oldest SLA (min)",
+          "queues.limit": "Limit",
+          "queues.flag": "Flag",
+          "services.title": "Microservices Status",
+          "services.service": "Service",
+          "services.container": "Container",
+          "services.running": "Running",
+          "services.health": "Health",
+          "services.status": "Status",
+          "services.ports": "Ports",
+          "backup.title": "Last Backup",
+          "backup.status": "Status",
+          "backup.timestamp": "Timestamp (UTC)",
+          "backup.age": "Backup age",
+          "backup.file": "File",
+          "backup.size": "Size",
+          "backup.duration": "Duration (ms)",
+          "backup.retention": "Retention (days)",
+          "backup.pruned": "Pruned files",
+          "backup.error": "Error",
+          "dr.title": "DR Info",
+          "dr.runbook": "Runbook",
+          "dr.restore": "Restore command",
+          "badge.code": "code: {value}",
+          "badge.latency": "latency: {value}",
+          "flag.warn": "WARN",
+          "flag.degraded": "DEGRADED",
+          "value.healthy": "healthy",
+          "value.warning": "warning",
+          "value.degraded": "degraded",
+          "value.unknown": "unknown",
+          "value.authenticated": "authenticated",
+          "value.failed": "failed",
+          "value.error": "error",
+          "value.running": "running",
+          "value.down": "down",
+          "value.starting": "starting",
+          "value.unhealthy": "unhealthy",
+          "value.none": "none",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "status.loading": "Chargement...",
+          "status.last_poll": "dernier relevé={time}",
+          "status.fetch_failed": "échec de récupération du statut : {message}",
+          "global.title": "État global du système",
+          "global.overall_status": "État général",
+          "global.health_reason": "Raison de l'état",
+          "global.api42_health": "État de l'API 42",
+          "resources.title": "Ressources système",
+          "resources.cpu_count": "Nombre de CPU",
+          "resources.load_avg": "Charge moyenne (1m, 5m, 15m)",
+          "resources.memory": "Mémoire utilisée / totale",
+          "resources.disk_used": "Disque utilisé (%)",
+          "resources.disk_free": "Disque libre (MB)",
+          "resources.db_size": "Taille DB (MB)",
+          "queues.title": "Files (interne / externe / traitement)",
+          "queues.queue": "File",
+          "queues.count": "Nombre",
+          "queues.oldest_sla": "SLA le plus ancien (min)",
+          "queues.limit": "Limite",
+          "queues.flag": "Signal",
+          "services.title": "État des microservices",
+          "services.service": "Service",
+          "services.container": "Conteneur",
+          "services.running": "Exécution",
+          "services.health": "Santé",
+          "services.status": "Statut",
+          "services.ports": "Ports",
+          "backup.title": "Dernière sauvegarde",
+          "backup.status": "Statut",
+          "backup.timestamp": "Horodatage (UTC)",
+          "backup.age": "Âge de la sauvegarde",
+          "backup.file": "Fichier",
+          "backup.size": "Taille",
+          "backup.duration": "Durée (ms)",
+          "backup.retention": "Rétention (jours)",
+          "backup.pruned": "Fichiers supprimés",
+          "backup.error": "Erreur",
+          "dr.title": "Infos PRA",
+          "dr.runbook": "Runbook",
+          "dr.restore": "Commande de restauration",
+          "badge.code": "code : {value}",
+          "badge.latency": "latence : {value}",
+          "flag.warn": "ATTENTION",
+          "flag.degraded": "DÉGRADÉ",
+          "value.healthy": "sain",
+          "value.warning": "avertissement",
+          "value.degraded": "dégradé",
+          "value.unknown": "inconnu",
+          "value.authenticated": "authentifié",
+          "value.failed": "échec",
+          "value.error": "erreur",
+          "value.running": "en cours",
+          "value.down": "arrêté",
+          "value.starting": "démarrage",
+          "value.unhealthy": "défaillant",
+          "value.none": "aucun",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "status.loading": "Cargando...",
+          "status.last_poll": "última consulta={time}",
+          "status.fetch_failed": "error al obtener el estado: {message}",
+          "global.title": "Estado global del sistema",
+          "global.overall_status": "Estado general",
+          "global.health_reason": "Motivo del estado",
+          "global.api42_health": "Estado de API 42",
+          "resources.title": "Recursos del sistema",
+          "resources.cpu_count": "Cantidad de CPU",
+          "resources.load_avg": "Carga media (1m, 5m, 15m)",
+          "resources.memory": "Memoria usada / total",
+          "resources.disk_used": "Disco usado (%)",
+          "resources.disk_free": "Disco libre (MB)",
+          "resources.db_size": "Tamaño DB (MB)",
+          "queues.title": "Colas (interna / externa / proceso)",
+          "queues.queue": "Cola",
+          "queues.count": "Cantidad",
+          "queues.oldest_sla": "SLA más antiguo (min)",
+          "queues.limit": "Límite",
+          "queues.flag": "Indicador",
+          "services.title": "Estado de microservicios",
+          "services.service": "Servicio",
+          "services.container": "Contenedor",
+          "services.running": "Ejecución",
+          "services.health": "Salud",
+          "services.status": "Estado",
+          "services.ports": "Puertos",
+          "backup.title": "Última copia de seguridad",
+          "backup.status": "Estado",
+          "backup.timestamp": "Marca temporal (UTC)",
+          "backup.age": "Antigüedad de la copia",
+          "backup.file": "Archivo",
+          "backup.size": "Tamaño",
+          "backup.duration": "Duración (ms)",
+          "backup.retention": "Retención (días)",
+          "backup.pruned": "Archivos eliminados",
+          "backup.error": "Error",
+          "dr.title": "Info DR",
+          "dr.runbook": "Runbook",
+          "dr.restore": "Comando de restauración",
+          "badge.code": "código: {value}",
+          "badge.latency": "latencia: {value}",
+          "flag.warn": "AVISO",
+          "flag.degraded": "DEGRADADO",
+          "value.healthy": "sano",
+          "value.warning": "advertencia",
+          "value.degraded": "degradado",
+          "value.unknown": "desconocido",
+          "value.authenticated": "autenticado",
+          "value.failed": "falló",
+          "value.error": "error",
+          "value.running": "en ejecución",
+          "value.down": "detenido",
+          "value.starting": "iniciando",
+          "value.unhealthy": "no saludable",
+          "value.none": "ninguno",
+        },
+      };
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key, values = {}) {
+        const lang = getLanguage();
+        const template = I18N[lang]?.[key] || I18N.en[key] || key;
+        return Object.entries(values).reduce(
+          (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+          template
+        );
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = getLanguage();
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+      }
+
+      function translateValue(value) {
+        const raw = String(value || "").trim();
+        const key = raw.toLowerCase();
+        return I18N[getLanguage()]?.[`value.${key}`] || I18N.en[`value.${key}`] || raw || "-";
+      }
+
+      function formatBytes(bytes) {
+        const n = Number(bytes);
+        if (!Number.isFinite(n) || n < 0) return "-";
+        if (n < 1024) return `${n} B`;
+        const units = ["KB", "MB", "GB", "TB"];
+        let value = n / 1024;
+        let unit = units[0];
+        for (let i = 1; i < units.length && value >= 1024; i++) {
+          value /= 1024;
+          unit = units[i];
+        }
+        return `${value.toFixed(2)} ${unit}`;
+      }
+
+      function formatMB(bytes) {
+        const n = Number(bytes);
+        if (!Number.isFinite(n) || n < 0) return "-";
+        return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      function formatRepoPath(pathValue) {
+        if (pathValue === null || pathValue === undefined) return "-";
+        const raw = String(pathValue).trim();
+        if (!raw) return "-";
+        const marker = "42_Network/";
+        const idx = raw.indexOf(marker);
+        if (idx >= 0) return `/${raw.slice(idx)}`;
+        if (raw.startsWith("42_Network/")) return `/${raw}`;
+        return raw;
+      }
+
+      function formatAgeSeconds(value) {
+        const seconds = Number(value);
+        if (!Number.isFinite(seconds) || seconds < 0) return "-";
+        if (seconds < 60) return `${Math.floor(seconds)} s`;
+
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min`;
+
+        const hours = Math.floor(minutes / 60);
+        const remMinutes = minutes % 60;
+        if (hours < 24) {
+          return remMinutes > 0 ? `${hours} h ${remMinutes} min` : `${hours} h`;
+        }
+
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        return remHours > 0 ? `${days} d ${remHours} h` : `${days} d`;
+      }
+
+      function text(id, value) {
+        const node = document.getElementById(id);
+        if (!node) return;
+        node.textContent = value === null || value === undefined || value === "" ? "-" : String(value);
+      }
+
+      function overallClass(status) {
+        if (status === "healthy") return "ok";
+        if (status === "warning") return "warn";
+        if (status === "degraded") return "bad";
+        return "";
+      }
+
+      function api42Class(status) {
+        const text = String(status || "").toLowerCase();
+        const match = text.match(/\b(\d{3})\b/);
+        if (match) {
+          const code = Number(match[1]);
+          if (code >= 200 && code < 300) return "ok";
+          if (code >= 400) return "bad";
+          return "warn";
+        }
+        if (text.includes("failed") || text.includes("error")) return "bad";
+        if (text.includes("authenticated")) return "ok";
+        return "warn";
+      }
+
+      function parseApi42Status(status) {
+        const raw = String(status || "").trim();
+        const parts = raw.length ? raw.split(/\s+/) : [];
+        const state = parts.length ? parts[0] : "unknown";
+        let code = null;
+        let latency = null;
+
+        for (let i = 0; i < parts.length; i++) {
+          if (/^\d{3}$/.test(parts[i])) {
+            code = Number(parts[i]);
+            const maybeLatency = Number(parts[i + 1]);
+            if (Number.isFinite(maybeLatency)) {
+              latency = maybeLatency;
+            }
+            break;
+          }
+        }
+
+        return { state, code, latency };
+      }
+
+      function serviceHealthClass(health, running) {
+        const value = String(health || "").toLowerCase();
+        if (value === "healthy") return "ok";
+        if (value === "starting" || value === "unknown" || value === "none") return "warn";
+        if (value === "unhealthy" || value === "down") return "bad";
+        return running ? "warn" : "bad";
+      }
+
+      function serviceRunningClass(running, health) {
+        if (!running) return "bad";
+        const value = String(health || "").toLowerCase();
+        if (value === "healthy") return "ok";
+        if (value === "starting" || value === "unknown" || value === "none") return "warn";
+        if (value === "unhealthy" || value === "down") return "bad";
+        return "warn";
+      }
+
+      function setBadge(id, value, level = "") {
+        const node = document.getElementById(id);
+        if (!node) return;
+        node.className = `badge ${level}`.trim();
+        node.textContent = value;
+      }
+
+      function queueRuleFor(name, thresholds) {
+        const intWarn = Number(thresholds.fetch_queue_internal_warn_max);
+        const extDegraded = Number(thresholds.fetch_queue_external_degraded_max);
+        const procDegraded = Number(thresholds.process_queue_degraded_max);
+        if (name === "fetch_queue_internal") {
+          return {
+            limit: Number.isFinite(intWarn) ? intWarn : null,
+            overClass: "warn",
+            overLabel: t("flag.warn"),
+          };
+        }
+        if (name === "fetch_queue_external") {
+          return {
+            limit: Number.isFinite(extDegraded) ? extDegraded : null,
+            overClass: "bad",
+            overLabel: t("flag.degraded"),
+          };
+        }
+        if (name === "process_queue") {
+          return {
+            limit: Number.isFinite(procDegraded) ? procDegraded : null,
+            overClass: "bad",
+            overLabel: t("flag.degraded"),
+          };
+        }
+        return { limit: null, overClass: "", overLabel: "-" };
+      }
+
+      function queueFlagBadge(name, count, thresholds) {
+        const rule = queueRuleFor(name, thresholds);
+        if (!Number.isFinite(rule.limit)) {
+          return `<span class="badge">-</span>`;
+        }
+        const numericCount = Number(count || 0);
+        if (numericCount > rule.limit) {
+          return `<span class="badge ${rule.overClass}">${rule.overLabel}</span>`;
+        }
+        return `<span class="badge ok">OK</span>`;
+      }
+
+      function toOptionalNumber(value) {
+        if (value === null || value === undefined || value === "") return null;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      async function refresh() {
+        try {
+          const response = await fetch("/api/admin/status", {
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          if (response.status === 401) {
+            const next = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.assign(`/login.html?next=${next}`);
+            return;
+          }
+          if (response.status === 403) {
+            text("overall-text", "Admin access required.");
+            const dot = document.getElementById("overall-dot");
+            if (dot) {
+              dot.className = "dot bad";
+            }
+            return;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = await response.json();
+
+          const g = data.global_system_health || {};
+          const overall = g.overall_status || "unknown";
+          setBadge("g-overall-badge", translateValue(overall), overallClass(overall));
+          text("g-overall-reason", g.overall_reason);
+
+          text("overall-text", t("status.last_poll", { time: new Date().toLocaleTimeString() }));
+          const dot = document.getElementById("overall-dot");
+          if (dot) {
+            dot.className = `dot ${overallClass(overall)}`.trim();
+          }
+
+          const r = data.system_resources || {};
+          text("r-cpu-count", r.cpu_count);
+          text(
+            "r-load",
+            `${Number(r.loadavg_1 || 0).toFixed(2)}, ${Number(r.loadavg_5 || 0).toFixed(2)}, ${Number(
+              r.loadavg_15 || 0
+            ).toFixed(2)}`
+          );
+          text("r-mem", `${formatBytes(r.memory_used_bytes)} / ${formatBytes(r.memory_total_bytes)}`);
+          const diskUsed = Number(r.disk_used_percent);
+          text("r-disk-used", Number.isFinite(diskUsed) ? diskUsed.toFixed(1) : "-");
+          text("r-disk-free", r.disk_free_mb);
+          text("r-db-size", formatMB(r.db_size_bytes));
+
+          const a42 = data.api42_health || {};
+          const a42Status = a42.status || "unknown";
+          const parsed42 = parseApi42Status(a42Status);
+          const a42Level = api42Class(a42Status);
+          setBadge("g-a42-state", translateValue(parsed42.state), a42Level);
+          const codeLevel =
+            parsed42.code === null
+              ? ""
+              : parsed42.code >= 200 && parsed42.code < 300
+              ? "ok"
+              : parsed42.code >= 400
+              ? "bad"
+              : "warn";
+          setBadge(
+            "g-a42-code",
+            t("badge.code", { value: parsed42.code === null ? "-" : parsed42.code }),
+            codeLevel
+          );
+          setBadge(
+            "g-a42-latency",
+            t("badge.latency", { value: parsed42.latency === null ? "-" : `${parsed42.latency.toFixed(3)}s` }),
+            parsed42.latency === null ? "" : parsed42.latency < 1 ? "ok" : "warn"
+          );
+
+          const svc = data.microservices_status || {};
+          const svcBody = document.getElementById("svc-body");
+          if (svcBody) {
+            const rows = Array.isArray(svc.services) ? svc.services : [];
+            svcBody.innerHTML = rows
+              .map(
+                (item) => `<tr>
+                    <td>${item.key ?? "-"}</td>
+                    <td>${item.container ?? "-"}</td>
+                    <td><span class="status-row"><span class="dot small ${serviceRunningClass(item.running, item.health)}"></span>${item.running ? translateValue("running") : translateValue("down")}</span></td>
+                    <td><span class="status-row"><span class="dot small ${serviceHealthClass(item.health, item.running)}"></span>${translateValue(item.health ?? "-")}</span></td>
+                    <td>${item.status ?? "-"}</td>
+                    <td>${item.ports ?? "-"}</td>
+                  </tr>`
+              )
+              .join("");
+          }
+
+          const queues = data.queues_status || {};
+          const queueThresholds = data.queue_thresholds || {};
+          const queueBody = document.getElementById("queue-body");
+          if (queueBody) {
+            const rows = Object.entries(queues);
+            queueBody.innerHTML = rows
+              .map(
+                ([name, payload]) => `<tr>
+                    <td>${name}</td>
+                    <td>${payload?.count ?? 0}</td>
+                    <td>${(() => {
+                      const v = toOptionalNumber(payload?.oldest_sla_minutes);
+                      return v === null ? "-" : String(v);
+                    })()}</td>
+                    <td>${(() => {
+                      const rule = queueRuleFor(name, queueThresholds);
+                      return Number.isFinite(rule.limit) ? String(rule.limit) : "-";
+                    })()}</td>
+                    <td>${queueFlagBadge(name, payload?.count ?? 0, queueThresholds)}</td>
+                  </tr>`
+              )
+              .join("");
+          }
+
+          const b = data.last_backup || {};
+          text("b-status", translateValue(b.status || "unknown"));
+          text("b-ts", b.timestamp_utc);
+          text("b-age", formatAgeSeconds(b.age_seconds));
+          text("b-file", formatRepoPath(b.backup_file));
+          text("b-size", formatBytes(b.size_bytes));
+          text("b-duration", b.duration_ms);
+          text("b-retention", b.retention_days);
+          text("b-pruned", b.pruned_count);
+          text("b-error", b.error);
+
+          const dr = data.dr_info || {};
+          text("dr-runbook", dr.runbook);
+          text("dr-restore", dr.restore_command);
+        } catch (err) {
+          text("overall-text", t("status.fetch_failed", { message: err.message }));
+          const dot = document.getElementById("overall-dot");
+          if (dot) {
+            dot.className = "dot bad";
+          }
+        }
+      }
+
+      const languageSelect = document.getElementById("language-select");
+      if (languageSelect) {
+        languageSelect.value = getLanguage();
+        languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, languageSelect.value);
+          applyStaticTranslations();
+          refresh();
+        });
+      }
+
+      applyStaticTranslations();
+      refresh();
+      setInterval(refresh, REFRESH_MS);
+    </script>
+  </body>
+</html>

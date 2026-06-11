@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <title>42 Network - Log in</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <style>
+      body {
+        justify-content: center;
+      }
+
+      .auth-shell {
+        width: min(100%, 440px);
+        margin: 0 auto;
+      }
+
+      .auth-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .auth-title {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+      }
+
+      .auth-title img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .auth-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .auth-link {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .auth-link:hover {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .auth-message {
+        min-height: 1.25rem;
+        color: var(--text-muted);
+      }
+
+      .auth-message.error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="auth-card">
+        <div class="auth-title">
+          <img src="./assets/42_pulse_logo.svg" alt="42 Network Pulse logo" />
+          <div>
+            <h1>Log in</h1>
+            <p class="status-text">42 Network Pulse</p>
+          </div>
+        </div>
+
+        <form id="login-form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Log in</button>
+        </form>
+
+        <p id="message" class="auth-message"></p>
+        <div class="auth-actions">
+          <a class="auth-link" href="/signup.html">Create an account</a>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("login-form");
+      const message = document.getElementById("message");
+
+      function setMessage(text, isError = false) {
+        message.textContent = text;
+        message.classList.toggle("error", isError);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage("Logging in...");
+
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+          }),
+        });
+
+        if (!response.ok) {
+          setMessage("Invalid email or password.", true);
+          return;
+        }
+
+        const next = new URLSearchParams(window.location.search).get("next") || "/message.html";
+        window.location.assign(next);
+      });
+    </script>
+  </body>
+</html>

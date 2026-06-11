@@ -1,0 +1,102 @@
+42_Network - Team Organization and Work Split (V2, 5 Members)
+Last update: 2026-03-05
+Reference: docs/subject.txt (Team roles + README requirements)
+
+Team roles (specialized for 5 members)
+- Martin: Product Owner (PO) + Developer
+  - Owns product vision, backlog priorities, acceptance criteria.
+  - Co-owns user interaction and i18n/browser validation.
+- Phil: Project Manager (PM/Scrum Master) + Developer
+  - Owns sprint planning, risk tracking, blockers, delivery cadence.
+  - Co-owns monitoring, health/status page, and release checklist.
+- Mathieu: Tech Lead/Architect + Developer
+  - Owns architecture, technical decisions, code quality, final integration.
+  - Co-owns backend framework, microservices, realtime architecture.
+- Jane: Developer (Security + Identity)
+  - Owns auth, OAuth, GDPR implementation.
+  - Co-owns security hardening modules.
+- NewMate (replace with actual login): Developer (Frontend + Data)
+  - Owns design-system/search/analytics stretch stream.
+  - Co-owns frontend framework and UX consistency.
+
+Role reminder
+- All members are developers and contribute code, tests, and docs.
+
+Module ownership matrix
+- Minor: Use a frontend framework [1]
+  - Primary: NewMate
+  - Secondary: Martin
+- Minor: Use a backend framework [1]
+  - Primary: Mathieu
+  - Secondary: Jane
+- Major: Implement real-time features using WebSockets [2]
+  - Primary: Mathieu
+  - Secondary: Phil
+- Major: Allow users to interact with other users [2]
+  - Primary: Martin
+  - Secondary: Jane
+- Minor: Support for multiple languages [1]
+  - Primary: Martin
+  - Secondary: NewMate
+- Minor: Support for additional browsers [1]
+  - Primary: Phil
+  - Secondary: NewMate
+- Major: Standard user management and authentication [2]
+  - Primary: Jane
+  - Secondary: Mathieu
+- Minor: OAuth 2.0 remote authentication [1]
+  - Primary: Jane
+  - Secondary: Martin
+- Major: Backend as microservices [2]
+  - Primary: Mathieu
+  - Secondary: Phil
+- Major: Monitoring with Prometheus/Grafana [2]
+  - Primary: Phil
+  - Secondary: Mathieu
+- Minor: Health check/status + backups/disaster recovery [1]
+  - Primary: Phil
+  - Secondary: Jane
+- Minor: GDPR compliance features [1]
+  - Primary: Jane
+  - Secondary: Martin
+
+Stretch ownership (only if locked modules are stable)
+- Minor: Custom-made design system [1]
+  - Primary: NewMate
+  - Secondary: Martin
+- Minor: Advanced search/filter/sort/pagination [1]
+  - Primary: NewMate
+  - Secondary: Phil
+- Major: WAF/ModSecurity + HashiCorp Vault [2]
+  - Primary: Jane
+  - Secondary: Mathieu
+- Major: Advanced analytics dashboard [2]
+  - Primary: NewMate
+  - Secondary: Phil
+
+Sprint split (1-week sprints)
+- Sprint 0
+  - Freeze module set, architecture baseline, Definition of Done, branch strategy.
+- Sprint 1
+  - Frontend/backend frameworks, auth base, repo scaffolding cleanup.
+- Sprint 2
+  - User interaction module + OAuth + i18n baseline.
+- Sprint 3
+  - Realtime features + microservices integration.
+- Sprint 4
+  - Monitoring + health/status page + backups/DR + browser compatibility.
+- Sprint 5
+  - GDPR + stabilization + module demo scripts + README contribution mapping.
+- Sprint 6 (buffer/stretch)
+  - Security hardening and analytics/dashboard/design/search stretch modules.
+
+Project management routine
+- Weekly planning (PM leads, PO prioritizes, Tech Lead validates feasibility).
+- Daily async update per member: yesterday/today/blocker.
+- Pull request rule: at least 1 reviewer, Tech Lead required for critical paths.
+- End-of-sprint demo with checklist against claimed modules.
+
+Required README alignment
+- Add this exact role split in README Team Information.
+- Add module list with points, owners, and implementation notes.
+- Add individual contribution section per member.

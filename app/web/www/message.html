@@ -1,0 +1,1874 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>42 Network - Live Events</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/auth.js" defer></script>
+    <style>
+      .layout.single {
+        grid-template-columns: 1fr;
+      }
+
+      .events-panel {
+        min-height: calc(100vh - 220px);
+        height: 79vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .analytics-panel {
+        min-height: calc(100vh - 220px);
+        height: 79vh;
+        overflow: hidden;
+      }
+
+      .events-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .events-header .meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .switch-links {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .switch-links .page-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .switch-links .page-link.active {
+        text-decoration: none;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .language-switcher select {
+        min-width: 96px;
+        padding: 0.25rem 0.55rem;
+      }
+
+
+      .pill {
+        border: 1px solid var(--border);
+        background: var(--panel-muted);
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 0.8rem;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--text-muted);
+        display: inline-block;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+        flex-shrink: 0;
+      }
+
+      .event-row {
+        display: grid;
+        grid-template-columns: 180px 157px minmax(0, 1fr);
+        gap: 0.45rem;
+        align-items: center;
+      }
+
+      .time-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .timestamp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+
+      #events-list {
+        flex: 1;
+        max-height: none;
+        min-height: 0;
+        overflow: auto;
+        padding: 0.5rem 0.25rem 0.25rem 0.25rem;
+      }
+
+      #events-list li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: stretch;
+        gap: 0.15rem;
+        transition: opacity 1000ms ease, transform 1000ms ease, border-color 120ms ease;
+        min-height: 34px;
+        padding: 0.35rem 0.55rem;
+        font-size: 0.9rem;
+        line-height: 1.2;
+        background: var(--panel-muted);
+        border: 1px solid transparent;
+        border-radius: 6px;
+      }
+
+      #events-list li.top-event {
+        border: 1px solid var(--border);
+        background: var(--panel-muted);
+        min-height: 40px;
+        margin-bottom: 0.25rem;
+      }
+
+      #events-list li.new {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+
+      #events-list li.flash {
+        animation: flashHighlight 5s ease;
+      }
+
+      @keyframes flashHighlight {
+        0% {
+          background: var(--panel-muted);
+          box-shadow: 0 0 12px rgba(255, 255, 255, 0.12);
+        }
+        50% {
+          background: var(--panel-muted);
+          box-shadow: 0 0 8px rgba(255, 255, 255, 0.08);
+        }
+        100% {
+          background: var(--panel-muted);
+          box-shadow: none;
+        }
+      }
+
+      #events-list li.top-event.type-connection {
+        border-color: #2ecc71;
+        color: #2ecc71;
+      }
+      #events-list li.top-event.type-deconnection {
+        border-color: #cf4636;
+        color: #cf4636;
+      }
+      #events-list li.top-event.type-evaluation {
+        border-color: #1f3ad8;
+        color: #1f3ad8;
+      }
+      #events-list li.top-event.type-correction {
+        border-color: #e67e22;
+        color: #e67e22;
+      }
+      #events-list li.top-event.type-new_seen {
+        border-color: #9b59b6;
+        color: #9b59b6;
+      }
+      #events-list li.top-event.type-wallet {
+        border-color: #f1c40f;
+        color: #f1c40f;
+      }
+
+      /* Ensure all text in the top event inherits the type color */
+      #events-list li.top-event .timestamp,
+      #events-list li.top-event .event-context,
+      #events-list li.top-event .flag,
+      #events-list li.top-event .event-details {
+        color: inherit;
+      }
+      #events-list li.top-event .event-type {
+        color: inherit;
+      }
+
+      .debug-box {
+        margin: 0.5rem 0 0.75rem 0;
+        padding: 0.75rem;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        background: var(--panel-muted);
+        color: var(--text-muted);
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        max-height: 30vh;
+        overflow: auto;
+      }
+
+      .event-type {
+        font-weight: 700;
+        color: var(--text);
+        word-break: break-word;
+        font-size: 0.9rem;
+        line-height: 1.1;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+      .top-event .event-type.type-connection {
+        color: #2ecc71;
+      }
+      .top-event .event-type.type-deconnection {
+        color: #cf4636;
+      }
+      .top-event .event-type.type-evaluation {
+        color: #1f3ad8;
+      }
+      .top-event .event-type.type-correction {
+        color: #e67e22;
+      }
+      .top-event .event-type.type-new_seen {
+        color: #9b59b6;
+      }
+      .top-event .event-type.type-wallet {
+        color: #f1c40f;
+      }
+
+      #events-list li:focus-visible {
+        outline: none;
+        border-color: #3498db;
+      }
+
+      .event-context {
+        color: var(--text);
+        word-break: break-word;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        font-size: 0.9rem;
+        line-height: 1.1;
+        align-items: center;
+        min-height: 32px;
+      }
+
+      .flag {
+        width: 18px;
+        height: 18px;
+        display: inline-block;
+        vertical-align: text-bottom;
+        flex-shrink: 0;
+      }
+
+      .event-details {
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+      }
+
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.95rem;
+        min-height: 0;
+        overflow: hidden;
+        padding-right: 0;
+        align-content: start;
+      }
+
+      .analytics-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel-muted);
+        padding: 0.7rem 0.8rem;
+      }
+
+      .analytics-card.pulses {
+        grid-column: 1;
+      }
+
+      .analytics-card.mix {
+        grid-column: 2;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .analytics-card.summary-wide {
+        margin-bottom: 0.85rem;
+      }
+
+      .analytics-card.summary-wide h3 {
+        text-align: center;
+      }
+
+      .analytics-card h3 {
+        margin: 0 0 0.55rem 0;
+        font-size: 0.92rem;
+      }
+
+      .analytics-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.62rem;
+      }
+
+      .analytics-item {
+        display: block;
+      }
+
+      .analytics-label {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .analytics-value {
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        color: var(--text);
+      }
+
+      .analytics-muted {
+        color: var(--text-muted);
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .bar-track {
+        position: relative;
+        margin-top: 0.35rem;
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2d9cdb, #27ae60);
+      }
+
+      .pie-stack {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+        min-height: 0;
+      }
+
+      .pie {
+        width: clamp(190px, 72%, 290px);
+        height: auto;
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: conic-gradient(#3a7afe 0deg, #3a7afe 360deg);
+        margin: 0 auto;
+      }
+
+      .legend-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.18rem 0.7rem;
+        overflow: visible;
+      }
+
+      .legend-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.35rem;
+        align-items: center;
+        min-width: 0;
+        font-size: 0.76rem;
+      }
+
+      .legend-item .analytics-label {
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.15;
+        word-break: normal;
+        overflow-wrap: normal;
+      }
+
+      .legend-item .analytics-value {
+        font-size: 0.74rem;
+        white-space: nowrap;
+      }
+
+      .legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .summary-cell {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.45rem 0.55rem;
+        background: rgba(255, 255, 255, 0.02);
+        text-align: center;
+      }
+
+      .summary-label {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .summary-value {
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        color: var(--text);
+      }
+
+      @media (max-width: 1280px) {
+        .layout.two {
+          grid-template-columns: 1fr;
+        }
+
+        .events-panel,
+        .analytics-panel {
+          min-height: 0;
+          height: auto;
+        }
+
+        .analytics-panel {
+          overflow: visible;
+        }
+
+        .analytics-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .analytics-card.pulses,
+        .analytics-card.mix {
+          grid-column: auto;
+          grid-row: auto;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .layout.two {
+          grid-template-columns: 1fr;
+        }
+        .analytics-grid {
+          grid-template-columns: 1fr;
+        }
+        .legend-list {
+          grid-template-columns: 1fr;
+        }
+        .analytics-card.pulses,
+        .analytics-card.mix {
+          grid-column: auto;
+          grid-row: auto;
+        }
+        .summary-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .pie {
+          width: clamp(180px, 62vw, 260px);
+        }
+        .event-row {
+          grid-template-columns: 1fr;
+        }
+        #events-list {
+          max-height: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header style="padding: 0.6rem 1.2rem;">
+      <div class="branding" style="gap: 0.75rem;">
+        <img
+          src="./assets/42_pulse_logo.svg"
+          alt="42 Network Pulse logo"
+          style="width: 68px; height: 68px;"
+        />
+        <div>
+          <h1 style="margin: 0 0 0.2rem 0;">42 Network Pulse</h1>
+          <p class="switch-links">
+            <a href="/message.html" class="page-link active" aria-current="page" data-i18n="nav.live">Live detector</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/admin.html" class="page-link" data-i18n="nav.admin">Admin</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events.html" class="page-link" data-i18n="nav.events">Events DB</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/events_dashboard.html" class="page-link" data-i18n="nav.dashboard">DB Dashboard</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/terms.html" class="page-link" data-i18n="nav.terms">Terms</a>
+            <span style="margin: 0 0.35rem;">|</span>
+            <a href="/privacy.html" class="page-link" data-i18n="nav.privacy">Privacy</a>
+          </p>
+          <label class="language-switcher">
+            <span data-i18n="language.label">Language</span>
+            <select id="language-select" aria-label="Language" data-i18n-aria-label="language.label">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="session-actions">
+        <p class="status-text" id="status-text" data-i18n="status.connecting">Connecting...</p>
+        <button type="button" class="ghost logout-button" data-logout-button>Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="layout two">
+        <div class="panel events-panel" style="display: flex; flex-direction: column;">
+          <div class="panel-header events-header">
+            <h2 id="title">Last 10 events (UTC)</h2>
+            <div class="meta">
+              <span class="status-dot" id="status-dot" title="status"></span>
+              <span class="pill" id="poll-pill">ws=live</span>
+              <span class="pill" id="endpoint-pill">/ws/events (detector)</span>
+              <span class="pill" id="last-pill">last=—</span>
+            </div>
+          </div>
+          <ul id="events-list" aria-live="polite"></ul>
+          <div class="debug-box" id="pending-debug" aria-live="polite" style="height: 120px; flex-shrink: 0;"></div>
+        </div>
+        <div class="panel events-panel analytics-panel">
+          <div class="panel-header events-header">
+            <h2 data-i18n="analytics.title">Detector Analytics - rolling 1h</h2>
+            <div class="meta">
+              <span class="pill" id="analytics-window-pill">window=1h</span>
+              <span class="pill" id="analytics-last-pill">updated=—</span>
+            </div>
+          </div>
+          <section class="analytics-card summary-wide">
+            <div class="summary-grid" id="analytics-summary-grid"></div>
+          </section>
+          <div class="analytics-grid">
+            <section class="analytics-card pulses">
+              <h3 data-i18n="analytics.by_campus">Events by campus - top 7</h3>
+              <ol class="analytics-list" id="analytics-pulses-top-bars"></ol>
+            </section>
+            <section class="analytics-card mix">
+              <h3 data-i18n="analytics.mix">Event mix - all types</h3>
+              <div class="pie-stack">
+                <div class="pie" id="analytics-mix-pie" aria-label="event mix pie chart" data-i18n-aria-label="analytics.mix_chart"></div>
+                <ul class="legend-list" id="analytics-mix-legend"></ul>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <template id="event-item">
+      <li class="info">
+        <div class="event-row">
+          <div class="time-wrap">
+            <span class="timestamp"></span>
+          </div>
+          <span class="event-type"></span>
+          <span class="event-context"></span>
+        </div>
+        <div class="event-details"></div>
+      </li>
+    </template>
+
+    <script type="module">
+      const WS_BASE_RETRY_MS = 1000;
+      const WS_MAX_RETRY_MS = 10_000;
+      const WS_STALE_AFTER_MS = 35_000;
+      const KEEP_FIXED = 10;
+      const KNOWN_MAX = 2000;
+      const INITIAL_WINDOW_MS = 30 * 60_000; // show roughly last 30 minutes on first load
+      const ANALYTICS_WINDOW_MS = 60 * 60_000; // detector analytics window
+      const DISPLAY_DELAY_MS = 20_000; // show at updated_at + 20s
+      const FUTURE_GRACE_MS = 60_000;
+      const START_GRACE_MS = 0;
+      const RELEASE_MS = 1200; // release one ready event roughly every 1.2s
+      const RELEASE_MAX_PER_TICK = 30; // avoid long UI freeze on large initial snapshots
+      const ANIM_MAX_PER_TICK = 5; // animate only the first N inserted in a burst
+      const LANGUAGE_KEY = "42-pulse.language";
+
+      const I18N = {
+        en: {
+          "nav.live": "Live detector",
+          "nav.admin": "Admin",
+          "nav.events": "Events DB",
+          "nav.dashboard": "DB Dashboard",
+          "nav.terms": "Terms",
+          "nav.privacy": "Privacy",
+          "language.label": "Language",
+          "status.connecting": "Connecting...",
+          "events.title": "Last {count} events (UTC)",
+          "events.status": "status",
+          "events.unknown_campus": "campus ?",
+          "events.campus": "campus {id}",
+          "events.flag": "flag",
+          "events.country_flag": "{country} flag",
+          "events.pending": "pending",
+          "events.ready_in": "ready_in",
+          "analytics.title": "Detector Analytics - rolling 1h",
+          "analytics.by_campus": "Events by campus - top 7",
+          "analytics.mix": "Event mix - all types",
+          "analytics.mix_chart": "event mix pie chart",
+          "analytics.window": "window=1h",
+          "analytics.updated": "updated={time}",
+          "analytics.no_data": "No data.",
+          "analytics.no_campus": "No campus-qualified detector events in the last hour.",
+          "analytics.no_types": "No event types observed in the last hour.",
+          "analytics.total_events": "Total events",
+          "analytics.distinct_users": "Distinct users",
+          "analytics.campuses": "Campuses",
+          "analytics.top_event_type": "Top event type",
+          "pill.last": "last={time}",
+          "pill.ws_live": "ws=live",
+          "pill.endpoint": "/ws/events (detector)",
+          "type.unknown": "Unknown",
+          "type.connection": "Connection",
+          "type.deconnection": "Disconnection",
+          "type.evaluation": "Evaluation",
+          "type.correction": "Correction",
+          "type.new_seen": "New seen",
+          "type.wallet": "Wallet",
+          "type.data": "Data",
+          "type.error": "Error",
+        },
+        fr: {
+          "nav.live": "Détecteur en direct",
+          "nav.admin": "Admin",
+          "nav.events": "Base événements",
+          "nav.dashboard": "Tableau DB",
+          "nav.terms": "Conditions",
+          "nav.privacy": "Confidentialité",
+          "language.label": "Langue",
+          "status.connecting": "Connexion...",
+          "events.title": "{count} derniers événements (UTC)",
+          "events.status": "état",
+          "events.unknown_campus": "campus ?",
+          "events.campus": "campus {id}",
+          "events.flag": "drapeau",
+          "events.country_flag": "drapeau {country}",
+          "events.pending": "en attente",
+          "events.ready_in": "prêt_dans",
+          "analytics.title": "Analytique du détecteur - dernière heure",
+          "analytics.by_campus": "Événements par campus - top 7",
+          "analytics.mix": "Répartition des événements - tous types",
+          "analytics.mix_chart": "graphique circulaire des types d'événements",
+          "analytics.window": "fenêtre=1h",
+          "analytics.updated": "maj={time}",
+          "analytics.no_data": "Aucune donnée.",
+          "analytics.no_campus": "Aucun événement du détecteur associé à un campus sur la dernière heure.",
+          "analytics.no_types": "Aucun type d'événement observé sur la dernière heure.",
+          "analytics.total_events": "Total des événements",
+          "analytics.distinct_users": "Utilisateurs distincts",
+          "analytics.campuses": "Campus",
+          "analytics.top_event_type": "Type principal",
+          "pill.last": "dernier={time}",
+          "pill.ws_live": "ws=direct",
+          "pill.endpoint": "/ws/events (détecteur)",
+          "type.unknown": "Inconnu",
+          "type.connection": "Connexion",
+          "type.deconnection": "Déconnexion",
+          "type.evaluation": "Évaluation",
+          "type.correction": "Correction",
+          "type.new_seen": "Nouvelle présence",
+          "type.wallet": "Wallet",
+          "type.data": "Donnée",
+          "type.error": "Erreur",
+        },
+        es: {
+          "nav.live": "Detector en vivo",
+          "nav.admin": "Admin",
+          "nav.events": "Base de eventos",
+          "nav.dashboard": "Panel DB",
+          "nav.terms": "Términos",
+          "nav.privacy": "Privacidad",
+          "language.label": "Idioma",
+          "status.connecting": "Conectando...",
+          "events.title": "Últimos {count} eventos (UTC)",
+          "events.status": "estado",
+          "events.unknown_campus": "campus ?",
+          "events.campus": "campus {id}",
+          "events.flag": "bandera",
+          "events.country_flag": "bandera de {country}",
+          "events.pending": "pendientes",
+          "events.ready_in": "listo_en",
+          "analytics.title": "Analítica del detector - última hora",
+          "analytics.by_campus": "Eventos por campus - top 7",
+          "analytics.mix": "Distribución de eventos - todos los tipos",
+          "analytics.mix_chart": "gráfico circular de tipos de eventos",
+          "analytics.window": "ventana=1h",
+          "analytics.updated": "act={time}",
+          "analytics.no_data": "Sin datos.",
+          "analytics.no_campus": "No hay eventos del detector asociados a campus en la última hora.",
+          "analytics.no_types": "No se observaron tipos de evento en la última hora.",
+          "analytics.total_events": "Total de eventos",
+          "analytics.distinct_users": "Usuarios únicos",
+          "analytics.campuses": "Campus",
+          "analytics.top_event_type": "Tipo principal",
+          "pill.last": "último={time}",
+          "pill.ws_live": "ws=en vivo",
+          "pill.endpoint": "/ws/events (detector)",
+          "type.unknown": "Desconocido",
+          "type.connection": "Conexión",
+          "type.deconnection": "Desconexión",
+          "type.evaluation": "Evaluación",
+          "type.correction": "Corrección",
+          "type.new_seen": "Nueva presencia",
+          "type.wallet": "Wallet",
+          "type.data": "Dato",
+          "type.error": "Error",
+        },
+      };
+
+      const COUNTRY_LABELS = {
+        fr: {
+          Angola: "Angola",
+          Armenia: "Arménie",
+          Australia: "Australie",
+          Austria: "Autriche",
+          Belgium: "Belgique",
+          Brazil: "Brésil",
+          Canada: "Canada",
+          "Czech Republic": "République tchèque",
+          Finland: "Finlande",
+          France: "France",
+          Germany: "Allemagne",
+          Italy: "Italie",
+          Japan: "Japon",
+          Jordan: "Jordanie",
+          "Korea, Republic of": "Corée du Sud",
+          Lebanon: "Liban",
+          Luxembourg: "Luxembourg",
+          Madagascar: "Madagascar",
+          Malaysia: "Malaisie",
+          Morocco: "Maroc",
+          Netherlands: "Pays-Bas",
+          "Palestine, State of": "Palestine",
+          Poland: "Pologne",
+          Portugal: "Portugal",
+          Singapore: "Singapour",
+          Spain: "Espagne",
+          Switzerland: "Suisse",
+          Thailand: "Thaïlande",
+          Turkey: "Turquie",
+          "United Arab Emirates": "Émirats arabes unis",
+          "United Kingdom": "Royaume-Uni",
+        },
+        es: {
+          Angola: "Angola",
+          Armenia: "Armenia",
+          Australia: "Australia",
+          Austria: "Austria",
+          Belgium: "Bélgica",
+          Brazil: "Brasil",
+          Canada: "Canadá",
+          "Czech Republic": "República Checa",
+          Finland: "Finlandia",
+          France: "Francia",
+          Germany: "Alemania",
+          Italy: "Italia",
+          Japan: "Japón",
+          Jordan: "Jordania",
+          "Korea, Republic of": "Corea del Sur",
+          Lebanon: "Líbano",
+          Luxembourg: "Luxemburgo",
+          Madagascar: "Madagascar",
+          Malaysia: "Malasia",
+          Morocco: "Marruecos",
+          Netherlands: "Países Bajos",
+          "Palestine, State of": "Palestina",
+          Poland: "Polonia",
+          Portugal: "Portugal",
+          Singapore: "Singapur",
+          Spain: "España",
+          Switzerland: "Suiza",
+          Thailand: "Tailandia",
+          Turkey: "Turquía",
+          "United Arab Emirates": "Emiratos Árabes Unidos",
+          "United Kingdom": "Reino Unido",
+        },
+      };
+
+      // Campus reference (extend as needed; falls back to plain campus ID)
+      const CAMPUS_INFO = {
+        1: { name: "42 Paris", country: "France" },
+        9: { name: "42 Lyon", country: "France" },
+        12: { name: "42 Brussels", country: "Belgium" },
+        13: { name: "42 Helsinki", country: "Finland" },
+        14: { name: "Codam", country: "Netherlands" },
+        16: { name: "1337 Khouribga", country: "Morocco" },
+        20: { name: "42 São Paulo", country: "Brazil" },
+        21: { name: "1337 Ben Guérir", country: "Morocco" },
+        22: { name: "42 Madrid", country: "Spain" },
+        25: { name: "42 Québec", country: "Canada" },
+        26: { name: "42 Tokyo", country: "Japan" },
+        28: { name: "42 Rio", country: "Brazil" },
+        29: { name: "42 Seoul", country: "Korea, Republic of" },
+        30: { name: "42 Roma", country: "Italy" },
+        31: { name: "42 Angoulême", country: "France" },
+        32: { name: "42 Yerevan", country: "Armenia" },
+        33: { name: "42 Bangkok", country: "Thailand" },
+        34: { name: "42 Kuala Lumpur", country: "Malaysia" },
+        35: { name: "42 Amman", country: "Jordan" },
+        36: { name: "42 Adelaide", country: "Australia" },
+        37: { name: "42 Málaga", country: "Spain" },
+        38: { name: "42 Lisboa", country: "Portugal" },
+        39: { name: "42 Heilbronn", country: "Germany" },
+        40: { name: "42 Urduliz", country: "Spain" },
+        41: { name: "42 Nice", country: "France" },
+        43: { name: "42 Abu Dhabi", country: "United Arab Emirates" },
+        44: { name: "42 Wolfsburg", country: "Germany" },
+        46: { name: "42 Barcelona", country: "Spain" },
+        47: { name: "42 Lausanne", country: "Switzerland" },
+        48: { name: "42 Mulhouse", country: "France" },
+        49: { name: "42 Istanbul", country: "Turkey" },
+        50: { name: "42 Kocaeli", country: "Turkey" },
+        51: { name: "42 Berlin", country: "Germany" },
+        52: { name: "42 Firenze", country: "Italy" },
+        53: { name: "42 Vienna", country: "Austria" },
+        55: { name: "1337 Med", country: "Morocco" },
+        56: { name: "42 Prague", country: "Czech Republic" },
+        57: { name: "42 London", country: "United Kingdom" },
+        58: { name: "42 Porto", country: "Portugal" },
+        59: { name: "42 Luxembourg", country: "Luxembourg" },
+        60: { name: "42 Perpignan", country: "France" },
+        61: { name: "42 Belo Horizonte", country: "Brazil" },
+        62: { name: "42 Le Havre", country: "France" },
+        64: { name: "42 Singapore", country: "Singapore" },
+        65: { name: "42 Antananarivo", country: "Madagascar" },
+        67: { name: "42 Warsaw", country: "Poland" },
+        68: { name: "42 Luanda", country: "Angola" },
+        69: { name: "42 Gyeongsan", country: "Korea, Republic of" },
+        70: { name: "42 Nablus", country: "Palestine, State of" },
+        71: { name: "42 Beirut", country: "Lebanon" },
+        72: { name: "42 Milano", country: "Italy" },
+        73: { name: "42 Iskandar Puteri", country: "Malaysia" },
+        75: { name: "1337 Rabat", country: "Morocco" },
+        76: { name: "42 Al-Aïn", country: "United Arab Emirates" },
+      };
+
+      const els = {
+        status: document.getElementById("status-text"),
+        statusDot: document.getElementById("status-dot"),
+        list: document.getElementById("events-list"),
+        template: document.getElementById("event-item"),
+        lastPill: document.getElementById("last-pill"),
+        title: document.getElementById("title"),
+        pendingBox: document.getElementById("pending-debug"),
+        languageSelect: document.getElementById("language-select"),
+      };
+
+      const known = new Set();
+      const knownOrder = [];
+      const pendingKeys = new Set();
+      const analyticsSeen = new Set();
+      let pending = [];
+      let analyticsEvents = [];
+      let initialized = false;
+      const FLAG_VERSION = "20251220b";
+      let baselineMs = 0;
+      let sinceSeconds = 0; // kept for reference; not sent to API now
+      let ws = null;
+      let wsReconnectTimer = null;
+      let wsRetryMs = WS_BASE_RETRY_MS;
+      let wsConnected = false;
+      let wsConnectedClients = null;
+      let wsLastEventId = "";
+      const wsWindowMap = new Map();
+      let releaseTimer = null;
+      const PENDING_PREVIEW = 20;
+      let lastPollMs = 0;
+      let lastServerNowMs = NaN;
+
+      function getLanguage() {
+        const saved = localStorage.getItem(LANGUAGE_KEY);
+        return Object.prototype.hasOwnProperty.call(I18N, saved) ? saved : "en";
+      }
+
+      function t(key, values = {}) {
+        const lang = getLanguage();
+        const template = I18N[lang]?.[key] || I18N.en[key] || key;
+        return Object.entries(values).reduce(
+          (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+          template
+        );
+      }
+
+      function translateCountry(country) {
+        const lang = getLanguage();
+        return COUNTRY_LABELS[lang]?.[country] || country || "";
+      }
+
+      function translateType(type) {
+        const key = String(type || "unknown").toLowerCase().trim() || "unknown";
+        const lang = getLanguage();
+        return I18N[lang]?.[`type.${key}`] || I18N.en[`type.${key}`] || titleCaseLabel(key);
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = getLanguage();
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+        });
+        if (els.statusDot) {
+          els.statusDot.title = t("events.status");
+        }
+      }
+
+      function updateChromeText(nowMs = Date.now()) {
+        els.title.textContent = t("events.title", { count: getKeep() });
+        const pollPill = document.getElementById("poll-pill");
+        if (pollPill) pollPill.textContent = t("pill.ws_live");
+        const endpointPill = document.getElementById("endpoint-pill");
+        if (endpointPill) endpointPill.textContent = t("pill.endpoint");
+        const analyticsWindowPill = document.getElementById("analytics-window-pill");
+        if (analyticsWindowPill) analyticsWindowPill.textContent = t("analytics.window");
+        const analyticsLastPill = document.getElementById("analytics-last-pill");
+        if (analyticsLastPill) analyticsLastPill.textContent = t("analytics.updated", { time: formatTimeUtc(nowMs) });
+        if (els.lastPill) {
+          els.lastPill.textContent = t("pill.last", { time: formatTimeUtc(lastServerNowMs) });
+        }
+      }
+
+      function updateRenderedEventsLanguage() {
+        els.list.querySelectorAll(".event-type[data-event-type]").forEach((node) => {
+          node.textContent = translateType(node.dataset.eventType);
+        });
+        els.list.querySelectorAll(".event-context [data-campus-id]").forEach((node) => {
+          node.textContent = campusParts(node.dataset.campusId).label;
+        });
+        els.list.querySelectorAll(".flag[data-country]").forEach((node) => {
+          const country = node.dataset.country || "";
+          node.alt = country ? t("events.country_flag", { country: translateCountry(country) }) : t("events.flag");
+        });
+      }
+
+      function applyLanguage() {
+        const nowMs = Number.isFinite(lastServerNowMs) ? lastServerNowMs : Date.now();
+        applyStaticTranslations();
+        updateChromeText(nowMs);
+        updateRenderedEventsLanguage();
+        updatePendingDebug(nowMs);
+        renderAnalytics(nowMs);
+      }
+
+      function stringifyChanges(changes) {
+        if (!Array.isArray(changes) || changes.length === 0) return "";
+        const parts = changes.map((c) => {
+          if (!c || typeof c !== "object") return "";
+          const path = c.path ?? c.field ?? "";
+          const oldValue = c.old ?? c.before ?? null;
+          const newValue = c.new ?? c.after ?? null;
+          if (!path) return "";
+          return `${path}: ${oldValue} -> ${newValue}`;
+        });
+        return parts.filter(Boolean).join(" | ");
+      }
+
+      function roundToSecond(ms) {
+        if (!Number.isFinite(ms)) return ms;
+        return Math.round(ms / 1000) * 1000;
+      }
+
+      const COUNTRY_TO_ISO = {
+        Angola: "AO",
+        Armenia: "AM",
+        Australia: "AU",
+        Austria: "AT",
+        Belgium: "BE",
+        Brazil: "BR",
+        Canada: "CA",
+        "Czech Republic": "CZ",
+        Finland: "FI",
+        France: "FR",
+        Germany: "DE",
+        Italy: "IT",
+        Japan: "JP",
+        Jordan: "JO",
+        "Korea, Republic of": "KR",
+        Lebanon: "LB",
+        Luxembourg: "LU",
+        Madagascar: "MG",
+        Malaysia: "MY",
+        Morocco: "MA",
+        Netherlands: "NL",
+        "Palestine, State of": "PS",
+        Poland: "PL",
+        Portugal: "PT",
+        Singapore: "SG",
+        Spain: "ES",
+        Switzerland: "CH",
+        Thailand: "TH",
+        Turkey: "TR",
+        "United Arab Emirates": "AE",
+        "United Kingdom": "GB",
+      };
+
+      function isoToFlagSvg(isoCode) {
+        if (!isoCode) return "";
+        const upper = isoCode.toUpperCase();
+        if (!/^[A-Z]{2}$/.test(upper)) return "";
+        const a = 0x1f1e6 + (upper.charCodeAt(0) - 65);
+        const b = 0x1f1e6 + (upper.charCodeAt(1) - 65);
+        return `${a.toString(16)}-${b.toString(16)}`;
+      }
+
+      function countryFlagSvg(country) {
+        if (!country) return "";
+        const iso = COUNTRY_TO_ISO[country];
+        return isoToFlagSvg(iso);
+      }
+
+      function formatTimestamp(ms, event) {
+        const t = Number.isFinite(ms) ? ms : parseEventTimeMs(event);
+        if (!Number.isFinite(t)) return event?.updated_at || "";
+        const shown = roundToSecond(t + DISPLAY_DELAY_MS);
+        return new Date(shown).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+      }
+
+      function formatTimeUtc(ms) {
+        if (!Number.isFinite(ms)) return "--:--:-- UTC";
+        return `${new Date(ms).toISOString().slice(11, 19)} UTC`;
+      }
+
+      function campusParts(campusId) {
+        if (!campusId && campusId !== 0) return { label: t("events.unknown_campus"), flagSvg: "", country: "" };
+        const info = CAMPUS_INFO[String(campusId)] || CAMPUS_INFO[campusId];
+        if (info && info.name) {
+          const flagSvg = countryFlagSvg(info.country);
+          const suffix = info.country ? ` · ${translateCountry(info.country)}` : "";
+          return { label: `${info.name}${suffix}`, flagSvg, country: info.country || "" };
+        }
+        return { label: t("events.campus", { id: campusId }), flagSvg: "", country: "" };
+      }
+
+      function formatDetails(event) {
+        return "";
+      }
+
+      function titleCaseLabel(text) {
+        if (!text) return "";
+        return text
+          .toLowerCase()
+          .split(/[\s_]+/)
+          .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+          .join(" ");
+      }
+
+      function primaryType(event) {
+        const types = Array.isArray(event.types) ? event.types : [];
+        return types[0] || "";
+      }
+
+      function typeClassName(type) {
+        const t = type || "";
+        return `type-${t}`;
+      }
+
+      function formatTypeSpecific(event) {
+        const t = primaryType(event);
+        if (t === "correction") {
+          return "CORRECTION — You evaluated someone !";
+        }
+        if (t === "evaluation") {
+          return "EVALUATION — Your project has been evaluated !";
+        }
+        return "";
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function eventKey(event) {
+        if (event && typeof event._event_id === "string" && event._event_id.trim() !== "") {
+          return `ws:${event._event_id.trim()}`;
+        }
+        const types = Array.isArray(event?.types) ? event.types.join("+") : "";
+        const ts = Number(event?.ts) || 0;
+        const uid = event?.user_id ?? "";
+        const updatedAt = event?.updated_at ?? "";
+        const changes = Array.isArray(event?.changes) ? JSON.stringify(event.changes) : "";
+        return `${uid}|${updatedAt}|${types}|${ts}|${changes}`;
+      }
+
+      function parseEventTimeMs(event) {
+        const updatedMs = (event && typeof event.updated_at === "string")
+          ? Date.parse(event.updated_at)
+          : NaN;
+        const tsMs = (event && typeof event.ts === "number" && Number.isFinite(event.ts))
+          ? (event.ts * 1000)
+          : NaN;
+
+        if (Number.isFinite(updatedMs) && Number.isFinite(tsMs)) {
+          // Fresh detector snapshots may carry an old updated_at; in that case,
+          // keep ordering by detector time so events are not dropped at intake.
+          if (updatedMs < tsMs - 5 * 60_000) return tsMs;
+          return updatedMs;
+        }
+        if (Number.isFinite(updatedMs)) return updatedMs;
+        if (Number.isFinite(tsMs)) return tsMs;
+        return NaN;
+      }
+
+      function analyticsEventTimeMs(event) {
+        const t = event && typeof event.ts === "number" && Number.isFinite(event.ts) ? event.ts * 1000 : NaN;
+        if (Number.isFinite(t)) return t;
+        return parseEventTimeMs(event);
+      }
+
+      function analyticsCampusKey(event) {
+        if (!event || event.campus_id === null || event.campus_id === undefined || event.campus_id === "") {
+          return "unknown";
+        }
+        return String(event.campus_id);
+      }
+
+      function analyticsUserKey(event) {
+        if (event && event.user_id !== null && event.user_id !== undefined && String(event.user_id).trim() !== "") {
+          return `id:${event.user_id}`;
+        }
+        return "";
+      }
+
+      function ingestAnalyticsEvents(events, nowMs) {
+        // /api/events/latest already returns a rolling window snapshot.
+        // Rebuild client analytics state from this snapshot each poll so
+        // summary numbers stay strictly aligned with the server window.
+        analyticsEvents = [];
+        analyticsSeen.clear();
+
+        if (!Array.isArray(events) || events.length === 0) return;
+
+        const cutoff = nowMs - ANALYTICS_WINDOW_MS;
+
+        for (const event of events) {
+          const key = eventKey(event);
+          if (!key || analyticsSeen.has(key)) continue;
+
+          const eventMs = analyticsEventTimeMs(event);
+          if (!Number.isFinite(eventMs)) continue;
+          if (eventMs < cutoff) continue;
+          if (eventMs > nowMs + FUTURE_GRACE_MS) continue;
+
+          analyticsSeen.add(key);
+          analyticsEvents.push({
+            key,
+            ms: eventMs,
+            campus: analyticsCampusKey(event),
+            user: analyticsUserKey(event),
+            types: Array.isArray(event.types) && event.types.length > 0 ? event.types : ["unknown"],
+          });
+        }
+      }
+
+      function pruneAnalytics(nowMs) {
+        const cutoff = nowMs - ANALYTICS_WINDOW_MS;
+        analyticsEvents = analyticsEvents.filter((item) => item.ms >= cutoff && item.ms <= nowMs + FUTURE_GRACE_MS);
+        analyticsSeen.clear();
+        for (const item of analyticsEvents) {
+          analyticsSeen.add(item.key);
+        }
+      }
+
+      function campusLabelFromKey(campusKey) {
+        if (campusKey === "unknown") return t("events.unknown_campus");
+        const numeric = Number(campusKey);
+        if (Number.isFinite(numeric)) {
+          return campusParts(numeric).label;
+        }
+        return t("events.campus", { id: campusKey });
+      }
+
+      function rankRowsFromMap(countMap, limit = 7) {
+        return Array.from(countMap.entries())
+          .sort((a, b) => {
+            if (b[1] !== a[1]) return b[1] - a[1];
+            return String(a[0]).localeCompare(String(b[0]));
+          })
+          .slice(0, limit);
+      }
+
+      function setListHtml(el, html) {
+        if (!el) return;
+        el.innerHTML = html;
+      }
+
+      const MIX_TYPE_COLORS = {
+        new_seen: "#9b59b6",
+        connection: "#2ecc71",
+        deconnection: "#cf4636",
+        evaluation: "#1f3ad8",
+        correction: "#e67e22",
+        wallet: "#f1c40f",
+        data: "#1abc9c",
+        error: "#95a5a6",
+        other: "#6c7a89",
+      };
+      const MIX_FALLBACK_COLORS = ["#3a7afe", "#2ecc71", "#f39c12", "#e74c3c", "#9b59b6", "#1abc9c", "#95a5a6"];
+
+      function mixColorForType(type, idx) {
+        const key = String(type || "").toLowerCase().trim();
+        if (MIX_TYPE_COLORS[key]) return MIX_TYPE_COLORS[key];
+        return MIX_FALLBACK_COLORS[idx % MIX_FALLBACK_COLORS.length];
+      }
+
+      function renderTopBars(elementId, rows, options = {}) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        if (!rows || rows.length === 0) {
+          el.innerHTML = `<li class="analytics-muted">${escapeHtml(options.emptyMessage || t("analytics.no_data"))}</li>`;
+          return;
+        }
+
+        const maxValue = Math.max(...rows.map(([, count]) => Number(count) || 0), 1);
+        el.innerHTML = rows
+          .map(([key, value], idx) => {
+            const count = Number(value) || 0;
+            const ratio = Math.max(0, Math.min(100, (count / maxValue) * 100));
+            const label = escapeHtml(campusLabelFromKey(key));
+            const fillClass = options.fillClass ? ` ${options.fillClass}` : "";
+            return `<li class="analytics-item">
+                <div class="bar-row">
+                  <span class="analytics-label">${idx + 1}. ${label}</span>
+                  <span class="analytics-value">${count}</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill${fillClass}" style="width:${ratio.toFixed(1)}%"></div></div>
+              </li>`;
+          })
+          .join("");
+      }
+
+      function renderMixPie(mixRows) {
+        const pie = document.getElementById("analytics-mix-pie");
+        const legend = document.getElementById("analytics-mix-legend");
+        if (!pie || !legend) return;
+
+        const displayRows = Array.isArray(mixRows) ? mixRows : [];
+
+        if (!displayRows || displayRows.length === 0) {
+          pie.style.background = "conic-gradient(#3a7afe 0deg, #3a7afe 360deg)";
+          legend.innerHTML = `<li class="analytics-muted">${escapeHtml(t("analytics.no_types"))}</li>`;
+          return;
+        }
+
+        const total = displayRows.reduce((acc, [, count]) => acc + (Number(count) || 0), 0);
+        if (total <= 0) {
+          pie.style.background = "conic-gradient(#3a7afe 0deg, #3a7afe 360deg)";
+          legend.innerHTML = `<li class="analytics-muted">${escapeHtml(t("analytics.no_types"))}</li>`;
+          return;
+        }
+
+        let accDeg = 0;
+        const segments = [];
+        const legends = [];
+
+        displayRows.forEach(([type, count], idx) => {
+          const c = Number(count) || 0;
+          const color = mixColorForType(type, idx);
+          const span = (c / total) * 360;
+          const start = accDeg;
+          const end = accDeg + span;
+          segments.push(`${color} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`);
+          accDeg = end;
+
+          const pct = ((c / total) * 100).toFixed(1);
+          legends.push(
+              `<li class="legend-item">
+              <span class="legend-swatch" style="background:${color}"></span>
+              <span class="analytics-label">${escapeHtml(translateType(type))}</span>
+              <span class="analytics-value">${c} (${pct}%)</span>
+            </li>`
+          );
+        });
+
+        pie.style.background = `conic-gradient(${segments.join(", ")})`;
+        legend.innerHTML = legends.join("");
+      }
+
+      function renderSummaryGrid(summary) {
+        const grid = document.getElementById("analytics-summary-grid");
+        if (!grid) return;
+
+        const cells = [
+          { label: t("analytics.total_events"), value: summary.totalEvents },
+          { label: t("analytics.distinct_users"), value: summary.totalUsers },
+          { label: t("analytics.campuses"), value: summary.totalCampuses },
+          { label: t("analytics.top_event_type"), value: summary.topType },
+        ];
+
+        grid.innerHTML = cells
+          .map(
+            (cell) => `<div class="summary-cell">
+                <div class="summary-label">${escapeHtml(cell.label)}</div>
+                <div class="summary-value">${escapeHtml(String(cell.value))}</div>
+              </div>`
+          )
+          .join("");
+      }
+
+      function renderAnalytics(nowMs) {
+        pruneAnalytics(nowMs);
+
+        const pulsesByCampus = new Map();
+        const mixByType = new Map();
+
+        for (const item of analyticsEvents) {
+          if (item.campus !== "unknown") {
+            pulsesByCampus.set(item.campus, (pulsesByCampus.get(item.campus) || 0) + 1);
+          }
+
+          for (const rawType of item.types) {
+            const type = typeof rawType === "string" && rawType.trim() ? rawType.trim() : "unknown";
+            mixByType.set(type, (mixByType.get(type) || 0) + 1);
+          }
+        }
+
+        const totalEvents = analyticsEvents.length;
+        const totalUsers = new Set(analyticsEvents.map((item) => item.user).filter(Boolean)).size;
+        const totalCampuses = pulsesByCampus.size;
+
+        const lastPill = document.getElementById("analytics-last-pill");
+        if (lastPill) {
+          lastPill.textContent = t("analytics.updated", { time: formatTimeUtc(nowMs) });
+        }
+
+        const pulsesRows = rankRowsFromMap(pulsesByCampus, 7);
+        renderTopBars("analytics-pulses-top-bars", pulsesRows, {
+          emptyMessage: t("analytics.no_campus"),
+          fillClass: "",
+        });
+
+        const mixRows = Array.from(mixByType.entries()).sort((a, b) => {
+          if (b[1] !== a[1]) return b[1] - a[1];
+          return a[0].localeCompare(b[0]);
+        });
+        renderMixPie(mixRows);
+
+        const topType = mixRows.length > 0 ? translateType(mixRows[0][0]) : "-";
+        renderSummaryGrid({
+          totalEvents,
+          totalUsers,
+          totalCampuses,
+          topType,
+        });
+      }
+
+      function isDisplayable(event, nowMs, baseline) {
+        const t = parseEventTimeMs(event);
+        if (!Number.isFinite(t)) return false;
+        if (t < baseline) return false;
+        if (t > nowMs - DISPLAY_DELAY_MS) return false;
+        if (t > nowMs + FUTURE_GRACE_MS) return false;
+        return true;
+      }
+
+      function toEpochSeconds(ms) {
+        if (!Number.isFinite(ms)) return 0;
+        return Math.floor(ms / 1000);
+      }
+
+      function getKeep() {
+        return KEEP_FIXED;
+      }
+
+      function buildNode(event) {
+        const node = els.template.content.cloneNode(true);
+        const li = node.querySelector("li");
+        const displayMs = parseEventTimeMs(event);
+        const timeText = formatTimestamp(displayMs, event);
+        const typeRaw = primaryType(event);
+        const typeText = translateType(typeRaw || "unknown");
+        const { label: campusLabel, flagSvg: campusFlagSvg, country: campusCountry } = campusParts(event.campus_id);
+        const details = ""; // hide details globally
+
+        node.querySelector(".timestamp").textContent = timeText;
+        const typeEl = node.querySelector(".event-type");
+        typeEl.textContent = typeText;
+        typeEl.dataset.eventType = typeRaw || "unknown";
+        typeEl.className = "event-type";
+        if (typeRaw) typeEl.classList.add(typeClassName(typeRaw));
+        const contextEl = node.querySelector(".event-context");
+        contextEl.textContent = "";
+        const contextSpan = document.createElement("span");
+        contextSpan.textContent = campusLabel;
+        contextSpan.dataset.campusId = event.campus_id ?? "";
+        contextEl.appendChild(contextSpan);
+        if (campusFlagSvg) {
+          const flagImg = document.createElement("img");
+          flagImg.className = "flag";
+          flagImg.src = `/assets/twemoji/svg/${campusFlagSvg}.svg?v=${FLAG_VERSION}`;
+          flagImg.alt = campusCountry ? t("events.country_flag", { country: translateCountry(campusCountry) }) : t("events.flag");
+          flagImg.dataset.country = campusCountry || "";
+          flagImg.loading = "lazy";
+          flagImg.decoding = "async";
+          contextEl.appendChild(flagImg);
+        }
+
+        const detailsEl = node.querySelector(".event-details");
+        detailsEl.textContent = "";
+        detailsEl.style.display = "none";
+        li.dataset.key = eventKey(event);
+        if (typeRaw) li.classList.add(typeClassName(typeRaw));
+        if (Number.isFinite(displayMs)) {
+          li.dataset.ms = String(displayMs);
+        }
+        return { node, li };
+      }
+
+      function trimDisplayed() {
+        const keep = getKeep();
+        const items = Array.from(els.list.querySelectorAll("li"));
+        if (items.length <= keep) return;
+        items.slice(keep).forEach((li) => li.remove());
+      }
+
+      function pruneOldDisplayed(nowMs) {
+        const cutoff = nowMs - INITIAL_WINDOW_MS;
+        for (const li of Array.from(els.list.querySelectorAll("li"))) {
+          const ms = Number(li.dataset.ms || "0");
+          if (ms && ms < cutoff) {
+            const key = li.dataset.key;
+            if (key) known.delete(key);
+            li.remove();
+          }
+        }
+        updateTopHighlight();
+      }
+
+      function rememberKey(key) {
+        if (!key) return;
+        if (known.has(key)) return;
+        known.add(key);
+        knownOrder.push(key);
+        if (knownOrder.length > KNOWN_MAX) {
+          const old = knownOrder.shift();
+          if (old) known.delete(old);
+        }
+      }
+
+      function insertOrdered(event, animate = true) {
+        const ms = parseEventTimeMs(event);
+        const { node, li } = buildNode(event);
+        li.dataset.ms = String(ms);
+        if (animate) {
+          li.classList.add("new");
+          li.classList.add("flash");
+        }
+
+        const items = Array.from(els.list.querySelectorAll("li"));
+        let inserted = false;
+        for (const item of items) {
+          const itemMs = Number(item.dataset.ms || "0");
+          if (ms > itemMs) {
+            item.before(node);
+            inserted = true;
+            break;
+          }
+        }
+        if (!inserted) {
+          els.list.appendChild(node);
+        }
+
+        if (animate) {
+          requestAnimationFrame(() => {
+            li.classList.remove("new");
+            setTimeout(() => li.classList.remove("flash"), 1000);
+          });
+        }
+
+        trimDisplayed();
+        updateTopHighlight();
+      }
+
+      function releaseReady() {
+        const nowMs = Date.now();
+        // always keep pending ordered by event time
+        pending.sort((a, b) => {
+          const ta = parseEventTimeMs(a);
+          const tb = parseEventTimeMs(b);
+          return (ta || 0) - (tb || 0);
+        });
+        let released = 0;
+        while (pending.length > 0 && released < RELEASE_MAX_PER_TICK) {
+          const ev = pending[0];
+          const t = parseEventTimeMs(ev);
+          if (!Number.isFinite(t) || t > nowMs + FUTURE_GRACE_MS) {
+            pending.shift();
+            continue;
+          }
+          if (t > nowMs - DISPLAY_DELAY_MS) break; // not ready yet
+          pending.shift();
+          const key = eventKey(ev);
+          if (key) pendingKeys.delete(key);
+          if (known.has(key)) continue;
+          rememberKey(key);
+          const animate = released < ANIM_MAX_PER_TICK;
+          insertOrdered(ev, animate);
+          released += 1;
+          // no break: flush all ready items
+        }
+        return released;
+      }
+
+      function updateTopHighlight() {
+        const items = Array.from(els.list.querySelectorAll("li"));
+        for (const li of items) {
+          li.classList.remove("top-event");
+        }
+        if (items.length > 0) {
+          items[0].classList.add("top-event");
+        }
+      }
+
+      function updatePendingDebug(nowMs) {
+        if (!els.pendingBox) return;
+        if (pending.length === 0) {
+          els.pendingBox.textContent = `${t("events.pending")}: 0`;
+          return;
+        }
+        const lines = [];
+        lines.push(`${t("events.pending")}: ${pending.length}`);
+        // ensure preview is ordered by updated_at asc (oldest first)
+        const ordered = [...pending].sort((a, b) => {
+          const ta = parseEventTimeMs(a);
+          const tb = parseEventTimeMs(b);
+          return (ta || 0) - (tb || 0);
+        });
+        const preview = ordered.slice(0, PENDING_PREVIEW);
+        for (const ev of preview) {
+          const t = parseEventTimeMs(ev);
+          const releaseAt = Number.isFinite(t) ? t + DISPLAY_DELAY_MS : null;
+          const ready = Number.isFinite(releaseAt) ? Math.max(0, Math.round((releaseAt - nowMs) / 1000)) : "?";
+          const stamp = ev.updated_at || (Number.isFinite(t) ? new Date(t).toISOString() : "?");
+          lines.push(`- ${translateType(primaryType(ev) || "unknown")} ${stamp} ${t("events.ready_in")}=${ready}s`);
+        }
+        els.pendingBox.textContent = lines.join("\n");
+      }
+
+      function normalizeEnvelopeEvent(item) {
+        if (!item || typeof item !== "object") return null;
+        if (item.event && typeof item.event === "object") {
+          const ev = { ...item.event };
+          if (typeof item.id === "string" && item.id.trim() !== "") {
+            ev._event_id = item.id.trim();
+          }
+          if (typeof item.event_ms === "number" && Number.isFinite(item.event_ms)) {
+            ev._event_ms = item.event_ms;
+          }
+          return ev;
+        }
+        return { ...item };
+      }
+
+      function rebuildWindowEvents(serverNowMs) {
+        const cutoff = serverNowMs - ANALYTICS_WINDOW_MS;
+        for (const [key, ev] of wsWindowMap.entries()) {
+          const t = parseEventTimeMs(ev);
+          if (!Number.isFinite(t) || t < cutoff || t > serverNowMs + FUTURE_GRACE_MS) {
+            wsWindowMap.delete(key);
+          }
+        }
+        return Array.from(wsWindowMap.values()).sort((a, b) => {
+          const ta = parseEventTimeMs(a);
+          const tb = parseEventTimeMs(b);
+          return (ta || 0) - (tb || 0);
+        });
+      }
+
+      function seedDisplayedFromSnapshot(sortedAsc, serverNowMs) {
+        const readyCutoff = serverNowMs - DISPLAY_DELAY_MS;
+        const windowCutoff = serverNowMs - INITIAL_WINDOW_MS;
+        const readyEvents = sortedAsc.filter((ev) => {
+          const t = parseEventTimeMs(ev);
+          if (!Number.isFinite(t)) return false;
+          if (t < windowCutoff) return false;
+          if (t > readyCutoff) return false;
+          if (t > serverNowMs + FUTURE_GRACE_MS) return false;
+          return true;
+        });
+        const seed = readyEvents.slice(-getKeep());
+
+        setListHtml(els.list, "");
+        known.clear();
+        knownOrder.length = 0;
+
+        for (const ev of seed) {
+          const key = eventKey(ev);
+          if (!key) continue;
+          rememberKey(key);
+          insertOrdered(ev, false);
+        }
+        updateTopHighlight();
+      }
+
+      function applyIncomingWsEvents(incoming, serverNowMs, { replaceWindow = false } = {}) {
+        if (replaceWindow) {
+          wsWindowMap.clear();
+          pending = [];
+          pendingKeys.clear();
+        }
+
+        const batch = Array.isArray(incoming) ? incoming : [];
+        for (const raw of batch) {
+          const ev = normalizeEnvelopeEvent(raw);
+          if (!ev) continue;
+          const key = eventKey(ev);
+          if (!key) continue;
+          wsWindowMap.set(key, ev);
+          if (typeof ev._event_id === "string" && ev._event_id) {
+            wsLastEventId = ev._event_id;
+          }
+        }
+
+        const sortedAsc = rebuildWindowEvents(serverNowMs);
+        ingestAnalyticsEvents(sortedAsc, serverNowMs);
+        renderAnalytics(serverNowMs);
+
+        if (!initialized) {
+          initialized = true;
+          // On page refresh, seed only the latest visible rows, then continue live.
+          // Keep only the last DISPLAY_DELAY window in pending to avoid replay storms.
+          seedDisplayedFromSnapshot(sortedAsc, serverNowMs);
+          baselineMs = serverNowMs - DISPLAY_DELAY_MS - START_GRACE_MS;
+          sinceSeconds = toEpochSeconds(baselineMs);
+        }
+
+        let added = 0;
+        for (const ev of sortedAsc) {
+          const key = eventKey(ev);
+          const t = parseEventTimeMs(ev);
+          if (!key || pendingKeys.has(key) || known.has(key)) continue;
+          if (!Number.isFinite(t) || t < baselineMs) continue;
+          if (t > serverNowMs + FUTURE_GRACE_MS) continue;
+          pending.push(ev);
+          pendingKeys.add(key);
+          added += 1;
+        }
+
+        pending.sort((a, b) => {
+          const ta = parseEventTimeMs(a);
+          const tb = parseEventTimeMs(b);
+          return (ta || 0) - (tb || 0);
+        });
+
+        releaseReady();
+        pruneOldDisplayed(serverNowMs);
+        updatePendingDebug(serverNowMs);
+
+        if (pending.length > 0) {
+          const maxSeenMs = Math.max(
+            baselineMs,
+            ...pending.map((e) => parseEventTimeMs(e)).filter(Number.isFinite)
+          );
+          baselineMs = maxSeenMs;
+          sinceSeconds = toEpochSeconds(baselineMs);
+        }
+
+        lastServerNowMs = serverNowMs;
+        els.lastPill.textContent = t("pill.last", { time: formatTimeUtc(serverNowMs) });
+        lastPollMs = Date.now();
+        setStatusIndicator(
+          true,
+          `WS · batch=${batch.length} new=${added} pending=${pending.length} showing=${els.list.children.length}`
+        );
+      }
+
+      function wsEndpointUrl() {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const url = new URL(`${protocol}//${window.location.host}/ws/events`);
+        if (wsLastEventId) {
+          url.searchParams.set("since_id", wsLastEventId);
+        }
+        return url.toString();
+      }
+
+      function clearWsReconnectTimer() {
+        if (!wsReconnectTimer) return;
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+
+      function scheduleWsReconnect(reason) {
+        if (wsReconnectTimer) return;
+        const waitMs = wsRetryMs;
+        setStatusIndicator(false, `WS reconnect in ${Math.round(waitMs / 1000)}s (${reason})`);
+        wsReconnectTimer = setTimeout(() => {
+          wsReconnectTimer = null;
+          connectWs();
+        }, waitMs);
+        wsRetryMs = Math.min(WS_MAX_RETRY_MS, Math.round(wsRetryMs * 1.7));
+      }
+
+      function handleWsPayload(payload) {
+        const type = String(payload?.type || "");
+        if (!type) return;
+
+        const parsedMs = Date.parse(payload.timestamp_utc || "");
+        const serverNowMs = Number.isFinite(parsedMs) ? parsedMs : Date.now();
+
+        if (type === "ws_ready") {
+          wsConnected = true;
+          lastPollMs = Date.now();
+          return;
+        }
+
+        if (type === "events_snapshot") {
+          const mode = String(payload.mode || "full");
+          const replaceWindow = mode === "full";
+          applyIncomingWsEvents(payload.events, serverNowMs, { replaceWindow });
+          return;
+        }
+
+        if (type === "events_delta") {
+          applyIncomingWsEvents(payload.events, serverNowMs, { replaceWindow: false });
+          return;
+        }
+
+        if (type === "events_heartbeat") {
+          lastPollMs = Date.now();
+          const clients = Number(payload.connected_clients);
+          wsConnectedClients = Number.isFinite(clients) ? clients : wsConnectedClients;
+          lastServerNowMs = serverNowMs;
+          els.lastPill.textContent = t("pill.last", { time: formatTimeUtc(serverNowMs) });
+          setStatusIndicator(true, `WS heartbeat · clients=${payload.connected_clients ?? "?"}`);
+          return;
+        }
+
+        if (type === "events_snapshot_error") {
+          setStatusIndicator(false, `WS snapshot error: ${payload.error || "unknown"}`);
+        }
+      }
+
+      function connectWs() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+        const endpoint = wsEndpointUrl();
+        ws = new WebSocket(endpoint);
+
+        ws.onopen = () => {
+          clearWsReconnectTimer();
+          wsConnected = true;
+          wsRetryMs = WS_BASE_RETRY_MS;
+          lastPollMs = Date.now();
+          setStatusIndicator(true, "WS connected");
+        };
+
+        ws.onmessage = (event) => {
+          let payload = null;
+          try {
+            payload = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+          handleWsPayload(payload);
+        };
+
+        ws.onerror = () => {
+          // rely on onclose for reconnect
+        };
+
+        ws.onclose = (event) => {
+          wsConnected = false;
+          ws = null;
+          scheduleWsReconnect(`close ${event.code}`);
+        };
+      }
+
+      function monitorWsFreshness() {
+        if (!wsConnected) return;
+        const ageMs = Date.now() - lastPollMs;
+        if (ageMs > WS_STALE_AFTER_MS) {
+          setStatusIndicator(false, `WS stale (${Math.round(ageMs / 1000)}s since update)`);
+        }
+      }
+
+      if (els.languageSelect) {
+        els.languageSelect.value = getLanguage();
+        els.languageSelect.addEventListener("change", () => {
+          localStorage.setItem(LANGUAGE_KEY, els.languageSelect.value);
+          applyLanguage();
+        });
+      }
+      applyLanguage();
+
+      connectWs();
+      releaseTimer = setInterval(() => {
+        releaseReady();
+        const nowMs = Date.now();
+        updatePendingDebug(nowMs);
+        renderAnalytics(nowMs);
+        monitorWsFreshness();
+      }, RELEASE_MS);
+
+      function setStatusIndicator(ok, _message) {
+        if (!els.status) return;
+        const now = Date.now();
+        const isFresh = now - lastPollMs < WS_STALE_AFTER_MS;
+        const isLight = ok && isFresh && pending.length < 100;
+        const clientsLabel = wsConnectedClients === null ? "clients=?" : `clients=${wsConnectedClients}`;
+        if (isLight) {
+          els.status.textContent = "";
+          els.status.title = "";
+          if (els.statusDot) {
+            els.statusDot.style.background = "#2ecc71";
+            els.statusDot.title = clientsLabel;
+          }
+        } else {
+          els.status.textContent = "";
+          els.status.title = "";
+          if (els.statusDot) {
+            els.statusDot.style.background = ok ? "var(--text-muted)" : "#e74c3c";
+            els.statusDot.title = clientsLabel;
+          }
+        }
+      }
+
+      // Real-time detector feed is driven by WebSocket /ws/events.
+    </script>
+  </body>
+</html>

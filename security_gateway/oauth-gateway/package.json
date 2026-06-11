@@ -1,0 +1,14 @@
+{
+  "name": "security_gateway-oauth-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simple isolated 42 OAuth gateway for ft_transcendence.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node --check src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

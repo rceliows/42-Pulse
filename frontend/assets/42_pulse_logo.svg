@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1dd1a1"/>
+      <stop offset="100%" stop-color="#0984e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="18" fill="#0b1323"/>
+  <path d="M28 90h20l12-24 10 42 14-60 12 40h24" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="20" y="46" fill="#eef2ff" font-family="Inter, 'SF Pro Display', system-ui, sans-serif" font-size="26" font-weight="700">42</text>
+  <text x="64" y="46" fill="#8ea6ff" font-family="Inter, 'SF Pro Display', system-ui, sans-serif" font-size="18" font-weight="600">Pulse</text>
+</svg>

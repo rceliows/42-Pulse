@@ -1,0 +1,103 @@
+services:
+  waf:
+    image: owasp/modsecurity-crs:nginx-alpine
+    container_name: transcendence_waf
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WAF_PORT:-8443}:8443"
+    environment:
+      BACKEND: http://web:80
+      PORT: 8080
+      SSL_PORT: 8443
+      SERVER_NAME: localhost
+      SERVER_TOKENS: "off"
+      RESOLVERS: 127.0.0.11
+      REAL_IP_PROXY_HEADER: X-Forwarded-For
+      MODSEC_TAG: transcendence-waf
+      MODSEC_RULE_ENGINE: "on"
+      MODSEC_AUDIT_ENGINE: RelevantOnly
+      MODSEC_AUDIT_LOG: /dev/stdout
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+      ACCESSLOG: /dev/stdout
+      ERRORLOG: /dev/stderr
+      BLOCKING_PARANOIA: ${MODSEC_BLOCKING_PARANOIA:-2}
+      DETECTION_PARANOIA: ${MODSEC_DETECTION_PARANOIA:-3}
+      ANOMALY_INBOUND: ${MODSEC_INBOUND_THRESHOLD:-4}
+      ANOMALY_OUTBOUND: ${MODSEC_OUTBOUND_THRESHOLD:-3}
+      MODSEC_REQ_BODY_LIMIT: ${MODSEC_REQ_BODY_LIMIT:-1048576}
+      MODSEC_REQ_BODY_NOFILES_LIMIT: ${MODSEC_REQ_BODY_NOFILES_LIMIT:-262144}
+      MODSEC_RESP_BODY_LIMIT: ${MODSEC_RESP_BODY_LIMIT:-524288}
+      MODSEC_RESP_BODY_LIMIT_ACTION: ProcessPartial
+      MODSEC_ARGUMENTS_LIMIT: ${MODSEC_ARGUMENTS_LIMIT:-200}
+      MODSEC_TMP_SAVE_UPLOADED_FILES: "Off"
+      MODSEC_UPLOAD_KEEP_FILES: "Off"
+      SSL_CERT_FILE: /etc/nginx/conf/server.crt
+      SSL_CERT_KEY_FILE: /etc/nginx/conf/server.key
+      SSL_OCSP_STAPLING: "off"
+      WAF_RATE_LIMIT: ${WAF_RATE_LIMIT:-15r/s}
+      WAF_BURST: ${WAF_BURST:-30}
+      WAF_CONN_LIMIT: ${WAF_CONN_LIMIT:-20}
+      WAF_CLIENT_MAX_BODY_SIZE: ${WAF_CLIENT_MAX_BODY_SIZE:-1m}
+      WORKER_CONNECTIONS: ${WAF_WORKER_CONNECTIONS:-2048}
+      KEEPALIVE_TIMEOUT: 30s
+      PROXY_TIMEOUT: 60s
+    volumes:
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/conf/nginx.conf.template
+        target: /etc/nginx/templates/nginx.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/conf/conf.d/default.conf.template
+        target: /etc/nginx/templates/conf.d/default.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/conf/modsecurity.d/modsecurity-override.conf.template
+        target: /etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/rules
+        target: /opt/modsecurity/rules/before-crs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/certs/waf.crt
+        target: /etc/nginx/conf/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/certs/waf.key
+        target: /etc/nginx/conf/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/waf/certs/ca.crt
+        target: /etc/nginx/conf/ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 3 --no-check-certificate -O - https://127.0.0.1:8443/healthz >/dev/null 2>&1"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - stack_transcendence
+
+networks:
+  stack_transcendence:
+    external: true
+    name: ${STACK_NETWORK_NAME:?STACK_NETWORK_NAME is required}

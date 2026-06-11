@@ -1,0 +1,42 @@
+Martin: (3/6)
+
+Minor: Support for multiple languages (at least 3 languages) (Mandatory)
+Minor: Support for additional browsers (Mandatory)
+Minor: GDPR compliance (Mandatory)
+
+Minor: Use a frontend framework (React, Vue, Angular, Svelte, etc.)
+Major: Real-time WebSockets module
+
+Phil: (3/6)
+
+Major: Advanced analytics dashboard with data visualization (Mandatory)
+Minor: Advanced search/filter/sort/pagination (Mandatory)
+
+Major: User interaction module (chat/profile/friends)
+Minor: Custom design system (10 reusable components)
+
+Jane: (3/5)
+
+Major: Standard user management and authentication (Mandatory)
+Minor: Implement remote authentication with OAuth 2.0 (Mandatory)
+
+Major: WAF/ModSecurity + HashiCorp Vault
+
+Mathieu: (4/6)
+
+Major: Backend as microservices. (Mandatory)
+Minor: Health check/status page + backup/disaster recovery (Manadory)
+Minor: Use a backend framework (Express, Fastify, NestJS, Django, etc.)
+
+Major: Monitoring with Prometheus/Grafana
+
+Damiens: ()
+
+
+
+=> Total is (12/23)
+------------
+
+Mathieu Bonus if time only
+
+Major: Implement a custom module that is not listed above.

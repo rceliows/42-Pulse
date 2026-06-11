@@ -1,0 +1,23 @@
+# OS junk
+.DS_Store
+**/.DS_Store
+
+# macOS duplicate-file artifacts (e.g. "file 2.ext", "file 3.ext")
+* [0-9].*
+* [0-9]
+
+# Secrets / local config (copy from *.example instead)
+.env
+.env.*
+!.env.example
+.oauth_state
+transcendance.config
+!transcendance.config.example
+
+# Dependencies / build output
+node_modules/
+dist/
+build/
+
+# Logs
+*.log

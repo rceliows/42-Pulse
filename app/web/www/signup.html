@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <title>42 Network - Sign up</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <style>
+      body {
+        justify-content: center;
+      }
+
+      .auth-shell {
+        width: min(100%, 440px);
+        margin: 0 auto;
+      }
+
+      .auth-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .auth-title {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+      }
+
+      .auth-title img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .auth-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .auth-link {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .auth-link:hover {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .auth-message {
+        min-height: 1.25rem;
+        color: var(--text-muted);
+      }
+
+      .auth-message.error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="auth-card">
+        <div class="auth-title">
+          <img src="./assets/42_pulse_logo.svg" alt="42 Network Pulse logo" />
+          <div>
+            <h1>Sign up</h1>
+            <p class="status-text">The first account becomes admin.</p>
+          </div>
+        </div>
+
+        <form id="signup-form">
+          <label>
+            Display name
+            <input id="display-name" type="text" autocomplete="name" />
+          </label>
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <button type="submit">Create account</button>
+        </form>
+
+        <p id="message" class="auth-message"></p>
+        <div class="auth-actions">
+          <a class="auth-link" href="/login.html">Log in instead</a>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("signup-form");
+      const message = document.getElementById("message");
+
+      function setMessage(text, isError = false) {
+        message.textContent = text;
+        message.classList.toggle("error", isError);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage("Creating account...");
+
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            display_name: document.getElementById("display-name").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+          }),
+        });
+
+        if (response.status === 409) {
+          setMessage("That email is already registered.", true);
+          return;
+        }
+        if (!response.ok) {
+          setMessage("Could not create the account. Use a valid email and at least 8 characters.", true);
+          return;
+        }
+
+        window.location.assign("/message.html");
+      });
+    </script>
+  </body>
+</html>

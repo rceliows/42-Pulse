@@ -1,0 +1,72 @@
+42_Network - ft_transcendence Module Plan (V2)
+Last update: 2026-03-05
+Team size: 5 members
+Reference: docs/subject.txt
+
+Scoring rules
+- Major module = 2 points
+- Minor module = 1 point
+- Minimum required by subject = 14 points
+- Locked target for defense = 17 points
+- Stretch target if time allows = 23 points
+
+1) Locked modules for final validation (17 points)
+
+Web
+- Minor: Use a frontend framework (React, Vue, Angular, Svelte, etc.). [1]
+- Minor: Use a backend framework (Express, Fastify, NestJS, Django, etc.). [1]
+- Major: Implement real-time features using WebSockets or similar technology. [2]
+- Major: Allow users to interact with other users. [2]
+
+Accessibility and Internationalization
+- Minor: Support for multiple languages (at least 3 languages). [1]
+- Minor: Support for additional browsers. [1]
+
+User Management
+- Major: Standard user management and authentication. [2]
+- Minor: Implement remote authentication with OAuth 2.0 (Google, GitHub, 42, etc.). [1]
+
+Devops
+- Major: Backend as microservices. [2]
+- Major: Monitoring system with Prometheus and Grafana. [2]
+- Minor: Health check and status page system with automated backups and disaster recovery procedures. [1]
+
+Data and Analytics
+- Minor: GDPR compliance features. [1]
+
+Locked total = 17 points
+
+2) Stretch modules (optional, +6 points)
+
+Web
+- Minor: Custom-made design system with reusable components (minimum: 10 reusable components). [1]
+- Minor: Implement advanced search functionality with filters, sorting, and pagination. [1]
+
+Cybersecurity
+- Major: Implement WAF/ModSecurity (hardened) + HashiCorp Vault for secrets. [2]
+
+Data and Analytics
+- Major: Advanced analytics dashboard with data visualization. [2]
+
+Stretch subtotal = 6 points
+Total potential = 23 points
+
+3) Dependency and build order
+- Framework modules first (frontend + backend).
+- Standard auth + OAuth before user interaction and realtime polishing.
+- User interaction before advanced UX stretch work.
+- Microservices baseline before monitoring and security hardening.
+- Health checks and backups before final defense demo.
+
+4) Cut plan if schedule slips
+- Keep all locked modules (17 points).
+- Drop stretch modules in this order:
+  1. Advanced analytics dashboard
+  2. WAF/ModSecurity + Vault
+  3. Custom design system
+  4. Advanced search
+
+5) Validation checklist before defense
+- Every claimed module has a working demo path.
+- README explains implementation + owner(s) per module.
+- No module is counted unless fully functional.

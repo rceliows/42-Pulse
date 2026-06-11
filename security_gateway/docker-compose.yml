@@ -1,0 +1,195 @@
+services:
+  vault:
+    image: hashicorp/vault:1.21
+    container_name: security_gateway_vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    command:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "127.0.0.1:${VAULT_PORT:-18200}:8200"
+    environment:
+      SKIP_CHOWN: "1"
+      SKIP_SETCAP: "1"
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_CACERT: /vault/certs/ca.crt
+    volumes:
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/vault/config
+        target: /vault/config
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/vault/data
+        target: /vault/data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/vault/certs
+        target: /vault/certs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/runtime/logs/vault
+        target: /vault/logs
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}
+        target: /workdir/security_gateway
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "VAULT_ADDR=https://127.0.0.1:8200 VAULT_CACERT=/vault/certs/ca.crt vault status >/dev/null 2>&1; rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 2 ]"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - security_gateway_private
+
+  oauth-gateway:
+    build:
+      context: ./oauth-gateway
+    image: transcendence/security_gateway-oauth-gateway:latest
+    pull_policy: never
+    container_name: security_gateway_oauth_gateway
+    restart: unless-stopped
+    env_file:
+      - ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/runtime/rendered/oauth-gateway.env
+    environment:
+      NODE_ENV: production
+      PORT: 4180
+    expose:
+      - "4180"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:4180/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - security_gateway_private
+      - stack_transcendence
+
+  waf:
+    image: owasp/modsecurity-crs:nginx-alpine
+    container_name: security_gateway_waf
+    restart: unless-stopped
+    depends_on:
+      - oauth-gateway
+    ports:
+      - "127.0.0.1:${WAF_PORT:-9443}:8443"
+    environment:
+      BACKEND: http://oauth-gateway:4180
+      PORT: 8080
+      SSL_PORT: 8443
+      SERVER_NAME: localhost
+      SERVER_TOKENS: "off"
+      RESOLVERS: 127.0.0.11
+      REAL_IP_PROXY_HEADER: X-Forwarded-For
+      MODSEC_TAG: transcendence-security_gateway-waf
+      MODSEC_RULE_ENGINE: "on"
+      MODSEC_AUDIT_ENGINE: RelevantOnly
+      MODSEC_AUDIT_LOG: /dev/stdout
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+      ACCESSLOG: /dev/stdout
+      ERRORLOG: /dev/stderr
+      BLOCKING_PARANOIA: ${MODSEC_BLOCKING_PARANOIA:-2}
+      DETECTION_PARANOIA: ${MODSEC_DETECTION_PARANOIA:-3}
+      ANOMALY_INBOUND: ${MODSEC_INBOUND_THRESHOLD:-4}
+      ANOMALY_OUTBOUND: ${MODSEC_OUTBOUND_THRESHOLD:-3}
+      MODSEC_REQ_BODY_LIMIT: ${MODSEC_REQ_BODY_LIMIT:-1048576}
+      MODSEC_REQ_BODY_NOFILES_LIMIT: ${MODSEC_REQ_BODY_NOFILES_LIMIT:-262144}
+      MODSEC_RESP_BODY_LIMIT: ${MODSEC_RESP_BODY_LIMIT:-524288}
+      MODSEC_RESP_BODY_LIMIT_ACTION: ProcessPartial
+      MODSEC_ARGUMENTS_LIMIT: ${MODSEC_ARGUMENTS_LIMIT:-200}
+      MODSEC_TMP_SAVE_UPLOADED_FILES: "Off"
+      MODSEC_UPLOAD_KEEP_FILES: "Off"
+      SSL_CERT_FILE: /etc/nginx/conf/server.crt
+      SSL_CERT_KEY_FILE: /etc/nginx/conf/server.key
+      SSL_OCSP_STAPLING: "off"
+      WAF_RATE_LIMIT: ${WAF_RATE_LIMIT:-15r/s}
+      WAF_BURST: ${WAF_BURST:-30}
+      WAF_CONN_LIMIT: ${WAF_CONN_LIMIT:-20}
+      WAF_CLIENT_MAX_BODY_SIZE: ${WAF_CLIENT_MAX_BODY_SIZE:-1m}
+      WORKER_CONNECTIONS: ${WAF_WORKER_CONNECTIONS:-2048}
+      KEEPALIVE_TIMEOUT: 30s
+      PROXY_TIMEOUT: 60s
+    volumes:
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/conf/nginx.conf.template
+        target: /etc/nginx/templates/nginx.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/conf/conf.d/default.conf.template
+        target: /etc/nginx/templates/conf.d/default.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/conf/modsecurity.d/modsecurity-override.conf.template
+        target: /etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/rules
+        target: /opt/modsecurity/rules/before-crs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/certs/waf.crt
+        target: /etc/nginx/conf/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/certs/waf.key
+        target: /etc/nginx/conf/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_GATEWAY_ROOT:?SECURITY_GATEWAY_ROOT is required}/waf/certs/ca.crt
+        target: /etc/nginx/conf/ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 3 --no-check-certificate -O - https://127.0.0.1:8443/healthz >/dev/null 2>&1"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - security_gateway_private
+
+networks:
+  security_gateway_private:
+    driver: bridge
+  stack_transcendence:
+    external: true
+    name: ${STACK_NETWORK_NAME:?STACK_NETWORK_NAME is required}

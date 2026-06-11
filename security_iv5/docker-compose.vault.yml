@@ -1,0 +1,64 @@
+services:
+  vault:
+    image: hashicorp/vault:1.21
+    container_name: transcendence_vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    command:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "127.0.0.1:${VAULT_PORT:-8200}:8200"
+    environment:
+      SKIP_CHOWN: "1"
+      SKIP_SETCAP: "1"
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_CACERT: /vault/certs/ca.crt
+    volumes:
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/vault/config
+        target: /vault/config
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/vault/data
+        target: /vault/data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/vault/certs
+        target: /vault/certs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}/runtime/logs/vault
+        target: /vault/logs
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${SECURITY_ROOT:?SECURITY_ROOT is required}
+        target: /workdir/security_iv5
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "VAULT_ADDR=https://127.0.0.1:8200 VAULT_CACERT=/vault/certs/ca.crt vault status >/dev/null 2>&1; rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 2 ]"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - vault_private
+
+networks:
+  vault_private:
+    driver: bridge
