@@ -185,7 +185,7 @@ make down
 
 ## Notes
 
-- This repository is currently dirty (active development); avoid assuming all tracked files are final.
+- This project has been submitted to meet course requirements. While further polishing could be applied, time constraints required us to draw a line and submit at a point we considered sufficiently refined.
 - Container runtime logic is under `app/*`.
 - The frontend (React/Vite) lives in `frontend/`; see `frontend/frontend.md` for build notes.
 - CLI/tooling runtime logic is under `tools/*`.
