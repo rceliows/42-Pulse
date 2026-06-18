@@ -88,6 +88,13 @@ ENSURE_DB_PERMISSIONS = DB_DATA_DIR="$(DB_DATA_DIR)" \
 	DB_CONTAINER_UID="$(DB_CONTAINER_UID)" \
 	DB_CONTAINER_GID="$(DB_CONTAINER_GID)" \
 	bash "$(ABS_REPO_ROOT)/scripts/ensure_db_permissions.sh"
+RELEASE_TAG = ROOT_DIR="$(ABS_REPO_ROOT)" \
+	RUNTIME_DIR="$(ABS_RUNTIME_DIR)" \
+	bash "$(ABS_REPO_ROOT)/scripts/release_tag.sh"
+ROLLBACK = ROOT_DIR="$(ABS_REPO_ROOT)" \
+	RUNTIME_DIR="$(ABS_RUNTIME_DIR)" \
+	TAG="$(TAG)" \
+	bash "$(ABS_REPO_ROOT)/scripts/rollback.sh"
 
 # Default values (can be overridden)
 DB_HOST ?= localhost
@@ -144,6 +151,10 @@ help:
 	@echo "  make maintenance-auto-status → Show scheduler container status + latest state"
 	@echo "  make maintenance-auto-once   → Run one maintenance+cleanup cycle now"
 	@echo "  make cleanup             → Trim logs only (queues untouched)"
+	@echo ""
+	@echo "RELEASES / ROLLBACK:"
+	@echo "  make release             → Tag current images with the git SHA (run automatically by deploy)"
+	@echo "  make rollback TAG=<sha>  → Restart services on a previously released image tag (no rebuild)"
 	@echo ""
 	@echo "PORT CONFIGURATION:"
 	@echo "  set WEB_PORT in ../transcendance.config → Change public web port"
@@ -254,6 +265,7 @@ deploy:
 	@npm --prefix "$(ABS_REPO_ROOT)/frontend" run build
 	@echo "🐳 Step 7/10: build + start core services (detector included, maintenance deferred)..."
 	@$(MAKE) up-services-core
+	@$(MAKE) release
 	@echo "🚀 Starting Transcendence deployment..."
 	@echo "   Campus ID: $(CAMPUS_ID)"
 	@echo "   Target: <1 hour complete setup"
@@ -354,6 +366,23 @@ up-services-core:
 
 up-services: up-services-core
 	@$(MAKE) maintenance-auto-start
+
+# ============================================================================ #
+#  RELEASES / ROLLBACK
+# ============================================================================ #
+
+release:
+	@echo "🏷️  Tagging current images with the current git SHA for rollback..."
+	@$(RELEASE_TAG)
+
+rollback:
+	@if [ -z "$(TAG)" ]; then \
+		echo "❌ Usage: make rollback TAG=<git-sha>"; \
+		echo "   See $(ABS_RUNTIME_DIR)/logs/state/releases.log for available tags"; \
+		exit 1; \
+	fi
+	@$(ROLLBACK)
+	@$(MAKE) status
 
 up-detector:
 	@echo "📦 Starting detector ($(MANUAL_SERVICES))..."
@@ -523,4 +552,5 @@ re: fclean deploy
 .PHONY: help deploy check exchange \
 	up up-db up-services-core up-services up-detector stop-detector stop down status logs health maintenance \
 	maintenance-auto-start maintenance-auto-stop maintenance-auto-status maintenance-auto-once cleanup db \
+	release rollback \
 	clean fclean re

@@ -3,6 +3,20 @@
 42 Pulse is a full-stack network monitoring platform built from zero as the final team project of 42 Belgium's common core. Lightweight C++ agents collect live data and stream it through a Node.js/Express REST API into a React/Vite dashboard, with WebSocket feeds pushing real-time updates to the browser. The whole stack — frontend, API, PostgreSQL, and an NGINX reverse proxy with SSL and OAuth2 authentication against the 42 Intra API — ships as a multi-service Docker Compose setup that deploys with a single command.
 Built with no starter code and validated through structured peer review: every architectural decision in here had to be explained and defended line by line.
 
+## Screenshots
+
+| Login | Live Detector |
+|---|---|
+| ![Login](docs/screenshots/login.png) | ![Live Detector](docs/screenshots/live-detector.png) |
+
+| Events DB | DB Dashboard |
+|---|---|
+| ![Events DB](docs/screenshots/events-db.png) | ![DB Dashboard](docs/screenshots/db-dashboard.png) |
+
+| Profile | Admin Panel |
+|---|---|
+| ![Profile](docs/screenshots/profile-user.png) | ![Admin Panel](docs/screenshots/profile-admin.png) |
+
 It includes:
 - A React/Vite frontend (`frontend/`)
 - API ingestion agents for 42 API v2

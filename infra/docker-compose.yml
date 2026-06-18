@@ -114,7 +114,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/api/Dockerfile
-    image: transcendence/api:latest
+    image: transcendence/api:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_api
     restart: unless-stopped
@@ -160,6 +160,7 @@ services:
       USER_DATA_STALE_AFTER_S: ${USER_DATA_STALE_AFTER_S:-600}
       AUTO_MAINTENANCE_INTERVAL_S: ${AUTO_MAINTENANCE_INTERVAL_S:-3600}
       ADMIN_API42_HEALTH_CACHE_S: ${ADMIN_API42_HEALTH_CACHE_S:-60}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost,http://localhost:5173,http://127.0.0.1,http://127.0.0.1:5173}
       ROOT_DIR: /app
       RUNTIME_DIR: /app
     healthcheck:
@@ -177,7 +178,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/detector/Dockerfile
-    image: transcendence/detector:latest
+    image: transcendence/detector:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_detector
     depends_on:
@@ -199,7 +200,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/fetcher/Dockerfile
-    image: transcendence/fetcher:latest
+    image: transcendence/fetcher:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_fetcher_internal
     depends_on:
@@ -220,7 +221,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/fetcher/Dockerfile
-    image: transcendence/fetcher:latest
+    image: transcendence/fetcher:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_fetcher_external_1
     depends_on:
@@ -244,7 +245,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/fetcher/Dockerfile
-    image: transcendence/fetcher:latest
+    image: transcendence/fetcher:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_fetcher_external_2
     depends_on:
@@ -268,7 +269,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/fetcher/Dockerfile
-    image: transcendence/fetcher:latest
+    image: transcendence/fetcher:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_fetcher_external_3
     depends_on:
@@ -293,7 +294,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/upserter/Dockerfile
-    image: transcendence/upserter:latest
+    image: transcendence/upserter:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_upserter_users
     depends_on:
@@ -314,7 +315,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/upserter/Dockerfile
-    image: transcendence/upserter:latest
+    image: transcendence/upserter:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_upserter_events
     depends_on:
@@ -334,7 +335,7 @@ services:
     build:
       context: ${PROJECT_ROOT:-..}
       dockerfile: app/maintenance-scheduler/Dockerfile
-    image: transcendence/maintenance-scheduler:latest
+    image: transcendence/maintenance-scheduler:${TAG:-latest}
     pull_policy: never
     container_name: transcendence_maintenance_scheduler
     restart: unless-stopped
@@ -393,10 +394,28 @@ services:
     volumes:
       - prometheus_data:/prometheus
       - ../app/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../app/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=15d"
+    networks:
+      - monitoring
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: transcendence_alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager_data:/alertmanager
+      - ../app/monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
     networks:
       - monitoring
 
@@ -490,6 +509,7 @@ services:
 volumes:
   grafana_data:
   prometheus_data:
+  alertmanager_data:
 
 networks:
   transcendence:

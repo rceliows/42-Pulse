@@ -8,6 +8,7 @@ import { promisify } from "util";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import { WebSocketServer } from "ws";
+import logger from "./logger.js";
 
 const { Pool } = pg;
 const execFileAsync = promisify(execFile);
@@ -30,6 +31,7 @@ const {
   RUNTIME_DIR = "",
   AUTH_SESSION_TTL_S = "7200",
   AUTH_COOKIE_SECURE = "",
+  FRONTEND_ORIGIN = "http://localhost,http://localhost:5173,http://127.0.0.1,http://127.0.0.1:5173",
 } = process.env;
 
 if (!DB_PASSWORD) {
@@ -122,7 +124,9 @@ const WS_PING_INTERVAL_MS = 30_000;
 const DB_EVENTS_DEFAULT_PAGE_SIZE = 50;
 const DB_EVENTS_MAX_PAGE_SIZE = 200;
 const DB_EVENTS_MAX_Q_LENGTH = 120;
+const DB_EVENTS_MAX_FILTER_LENGTH = 64;
 const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 256;
 const AUTH_COOKIE_NAME = "session";
 const AUTH_SCRYPT_KEYLEN = 64;
 const AUTH_SCRYPT_PARAMS = {
@@ -139,6 +143,7 @@ const AUTH_COOKIE_SECURE_OVERRIDE = parseOptionalBool(AUTH_COOKIE_SECURE);
 const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_RATE_LIMIT_MAX = 20;
 const authAttempts = new Map();
+const PASSWORD_RESET_TTL_SECONDS = 30 * 60;
 const DB_EVENTS_SORT_COLUMNS = {
   id: "id",
   event_time: "COALESCE(event_at, updated_at, ingested_at)",
@@ -268,6 +273,18 @@ function ensureAuthSchema() {
       `);
       await dbPool.query("CREATE INDEX IF NOT EXISTS idx_app_sessions_user_id ON app_sessions (user_id)");
       await dbPool.query("CREATE INDEX IF NOT EXISTS idx_app_sessions_expires_at ON app_sessions (expires_at)");
+      await dbPool.query(`
+        CREATE TABLE IF NOT EXISTS app_password_resets (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+          token_hash CHAR(64) NOT NULL UNIQUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          expires_at TIMESTAMPTZ NOT NULL,
+          used_at TIMESTAMPTZ
+        )
+      `);
+      await dbPool.query("CREATE INDEX IF NOT EXISTS idx_app_password_resets_user_id ON app_password_resets (user_id)");
+      await dbPool.query("CREATE INDEX IF NOT EXISTS idx_app_password_resets_expires_at ON app_password_resets (expires_at)");
     })().catch((err) => {
       authSchemaReady = null;
       throw err;
@@ -425,7 +442,7 @@ async function requireAuth(req, res, next) {
     req.authUser = user;
     return next();
   } catch (err) {
-    console.error("[Auth] Session check failed:", err.message);
+    logger.error({ err }, "[Auth] Session check failed");
     return res.status(500).json({ error: "auth_check_failed" });
   }
 }
@@ -1057,8 +1074,28 @@ async function fetchUserDirectFrom42(userId) {
   return await response.json();
 }
 
+const ALLOWED_ORIGINS = new Set(
+  FRONTEND_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean)
+);
+
 const app = express();
 app.set("trust proxy", true);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  return next();
+});
+
 app.use(express.json({ limit: "2mb" }));
 
 if (staticPublicDir) {
@@ -1098,6 +1135,9 @@ app.post("/api/auth/signup", async (req, res) => {
   if (password.length < PASSWORD_MIN_LENGTH) {
     return res.status(400).json({ error: "password_too_short", min_length: PASSWORD_MIN_LENGTH });
   }
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    return res.status(400).json({ error: "password_too_long", max_length: PASSWORD_MAX_LENGTH });
+  }
 
   try {
     await ensureAuthSchema();
@@ -1116,7 +1156,7 @@ app.post("/api/auth/signup", async (req, res) => {
     if (err?.code === "23505") {
       return res.status(409).json({ error: "email_already_registered" });
     }
-    console.error("[Auth] Signup failed:", err.message);
+    logger.error({ err }, "[Auth] Signup failed");
     return res.status(500).json({ error: "signup_failed" });
   }
 });
@@ -1146,7 +1186,7 @@ app.post("/api/auth/login", async (req, res) => {
     await createSession(req, res, user.id);
     return res.json({ user: publicUser(user) });
   } catch (err) {
-    console.error("[Auth] Login failed:", err.message);
+    logger.error({ err }, "[Auth] Login failed");
     return res.status(500).json({ error: "login_failed" });
   }
 });
@@ -1161,7 +1201,7 @@ app.post("/api/auth/logout", async (req, res) => {
     clearSessionCookie(res);
     return res.json({ ok: true });
   } catch (err) {
-    console.error("[Auth] Logout failed:", err.message);
+    logger.error({ err }, "[Auth] Logout failed");
     clearSessionCookie(res);
     return res.status(500).json({ error: "logout_failed" });
   }
@@ -1175,7 +1215,7 @@ app.get("/api/auth/me", async (req, res) => {
     }
     return res.json({ user: publicUser(user) });
   } catch (err) {
-    console.error("[Auth] Me failed:", err.message);
+    logger.error({ err }, "[Auth] Me failed");
     return res.status(500).json({ error: "auth_me_failed" });
   }
 });
@@ -1210,7 +1250,7 @@ app.patch("/api/auth/change-username", requireAuth, async (req, res) => {
     );
     return res.json({ ok: true });
   } catch (err) {
-    console.error("[Auth] Change username failed:", err.message);
+    logger.error({ err }, "[Auth] Change username failed");
     return res.status(500).json({ error: "change_username_failed" });
   }
 });
@@ -1224,6 +1264,9 @@ app.patch("/api/auth/change-password", requireAuth, async (req, res) => {
   }
   if (newPassword.length < PASSWORD_MIN_LENGTH) {
     return res.status(400).json({ error: "password_too_short", min_length: PASSWORD_MIN_LENGTH });
+  }
+  if (newPassword.length > PASSWORD_MAX_LENGTH) {
+    return res.status(400).json({ error: "password_too_long", max_length: PASSWORD_MAX_LENGTH });
   }
 
   try {
@@ -1242,7 +1285,7 @@ app.patch("/api/auth/change-password", requireAuth, async (req, res) => {
     );
     return res.json({ ok: true });
   } catch (err) {
-    console.error("[Auth] Change password failed:", err.message);
+    logger.error({ err }, "[Auth] Change password failed");
     return res.status(500).json({ error: "change_password_failed" });
   }
 });
@@ -1276,12 +1319,89 @@ app.patch("/api/auth/change-email", requireAuth, async (req, res) => {
     if (err?.code === "23505") {
       return res.status(409).json({ error: "email_already_registered" });
     }
-    console.error("[Auth] Change email failed:", err.message);
+    logger.error({ err }, "[Auth] Change email failed");
     return res.status(500).json({ error: "change_email_failed" });
   }
 });
 
-app.get("/api/users/:id", async (req, res) => {
+app.post("/api/auth/forgot-password", async (req, res) => {
+  if (!checkAuthRateLimit(req)) {
+    return res.status(429).json({ error: "too_many_auth_attempts" });
+  }
+
+  const email = normalizeEmail(req.body?.email);
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: "valid_email_required" });
+  }
+
+  try {
+    await ensureAuthSchema();
+    const result = await dbPool.query("SELECT id FROM app_users WHERE email = $1 LIMIT 1", [email]);
+    const user = result.rows[0];
+    if (user) {
+      const token = randomBytes(32).toString("base64url");
+      const tokenHash = sessionTokenHash(token);
+      await dbPool.query("DELETE FROM app_password_resets WHERE expires_at <= NOW()");
+      await dbPool.query(
+        "INSERT INTO app_password_resets (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 second'))",
+        [user.id, tokenHash, PASSWORD_RESET_TTL_SECONDS]
+      );
+      const baseOrigin = [...ALLOWED_ORIGINS][0] || `${req.protocol}://${req.get("host")}`;
+      const resetLink = `${baseOrigin}/reset-password?token=${token}`;
+      // No mailer is configured: log the link so it can be relayed to the user out-of-band.
+      logger.info({ email, resetLink }, "[Auth] Password reset requested");
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "[Auth] Forgot password failed");
+    return res.status(500).json({ error: "forgot_password_failed" });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  if (!checkAuthRateLimit(req)) {
+    return res.status(429).json({ error: "too_many_auth_attempts" });
+  }
+
+  const token = String(req.body?.token || "");
+  const newPassword = String(req.body?.new_password || "");
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "all_fields_required" });
+  }
+  if (newPassword.length < PASSWORD_MIN_LENGTH) {
+    return res.status(400).json({ error: "password_too_short", min_length: PASSWORD_MIN_LENGTH });
+  }
+  if (newPassword.length > PASSWORD_MAX_LENGTH) {
+    return res.status(400).json({ error: "password_too_long", max_length: PASSWORD_MAX_LENGTH });
+  }
+
+  try {
+    await ensureAuthSchema();
+    const result = await dbPool.query(
+      `SELECT id, user_id FROM app_password_resets
+        WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()
+        LIMIT 1`,
+      [sessionTokenHash(token)]
+    );
+    const reset = result.rows[0];
+    if (!reset) {
+      return res.status(400).json({ error: "invalid_or_expired_token" });
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await dbPool.query("UPDATE app_users SET password_hash = $1 WHERE id = $2", [newHash, reset.user_id]);
+    await dbPool.query("UPDATE app_password_resets SET used_at = NOW() WHERE id = $1", [reset.id]);
+    await dbPool.query("DELETE FROM app_sessions WHERE user_id = $1", [reset.user_id]);
+
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "[Auth] Reset password failed");
+    return res.status(500).json({ error: "reset_password_failed" });
+  }
+});
+
+app.get("/api/users/:id", requireAuth, async (req, res) => {
   const rawId = String(req.params.id || "").trim();
   if (!/^\d+$/.test(rawId)) {
     return res.status(400).json({ error: "invalid_user_id" });
@@ -1301,7 +1421,7 @@ app.get("/api/users/:id", async (req, res) => {
         localSource = "db";
       }
     } catch (dbErr) {
-      console.warn(`[Users API] DB lookup failed for ${userId}: ${dbErr.message}`);
+      logger.warn({ err: dbErr, userId }, "[Users API] DB lookup failed");
     }
 
     if (!localPayload) {
@@ -1371,7 +1491,7 @@ app.get("/api/users/:id", async (req, res) => {
 
     return res.status(404).json({ error: "user_not_found", id: userId });
   } catch (err) {
-    console.error(`[Users API] Failed to resolve user ${userId}:`, err.message);
+    logger.error({ err, userId }, "[Users API] Failed to resolve user");
     return res.status(502).json({
       error: "user_lookup_failed",
       id: userId,
@@ -1392,12 +1512,12 @@ app.get("/api/events/latest", async (_req, res) => {
       events,
     });
   } catch (err) {
-    console.error("[Events Latest] Error:", err.message);
+    logger.error({ err }, "[Events Latest] Error");
     return res.status(500).json({ error: "events_latest_failed", details: err.message });
   }
 });
 
-app.get("/api/events/db/meta", async (_req, res) => {
+app.get("/api/events/db/meta", requireAuth, async (_req, res) => {
   try {
     const [summaryResult, sourcesResult, eventTypesResult, campusesResult] = await Promise.all([
       dbPool.query(
@@ -1455,12 +1575,12 @@ app.get("/api/events/db/meta", async (_req, res) => {
       sort_columns: Object.keys(DB_EVENTS_SORT_COLUMNS),
     });
   } catch (err) {
-    console.error("[Events DB Meta] Error:", err.message);
+    logger.error({ err }, "[Events DB Meta] Error");
     return res.status(500).json({ error: "events_db_meta_failed", details: err.message });
   }
 });
 
-app.get("/api/events/db", async (req, res) => {
+app.get("/api/events/db", requireAuth, async (req, res) => {
   try {
     const page = parseIntInRange(req.query.page, {
       fallback: 1,
@@ -1476,8 +1596,8 @@ app.get("/api/events/db", async (req, res) => {
     const sortDirection = parseSortDirection(req.query.sort_dir);
     const sortExpression = DB_EVENTS_SORT_COLUMNS[sortByKey];
     const q = String(req.query.q || "").trim().slice(0, DB_EVENTS_MAX_Q_LENGTH);
-    const source = String(req.query.source || "").trim();
-    const eventType = String(req.query.event_type || "").trim();
+    const source = String(req.query.source || "").trim().slice(0, DB_EVENTS_MAX_FILTER_LENGTH);
+    const eventType = String(req.query.event_type || "").trim().slice(0, DB_EVENTS_MAX_FILTER_LENGTH);
     const campusId = parseOptionalInt(req.query.campus_id, { min: 0 });
     const userId = parseOptionalInt(req.query.user_id, { min: 0 });
     const from = parseOptionalDate(req.query.from);
@@ -1596,12 +1716,12 @@ app.get("/api/events/db", async (req, res) => {
       items: dataResult.rows,
     });
   } catch (err) {
-    console.error("[Events DB] Error:", err.message);
+    logger.error({ err }, "[Events DB] Error");
     return res.status(500).json({ error: "events_db_failed", details: err.message });
   }
 });
 
-app.get("/api/events/db/dashboard", async (req, res) => {
+app.get("/api/events/db/dashboard", requireAuth, async (req, res) => {
   try {
     const hours = parseIntInRange(req.query.hours, {
       fallback: 24,
@@ -1744,7 +1864,7 @@ app.get("/api/events/db/dashboard", async (req, res) => {
       countries_by_pulses: countriesByPulses,
     });
   } catch (err) {
-    console.error("[Events DB Dashboard] Error:", err.message);
+    logger.error({ err }, "[Events DB Dashboard] Error");
     return res.status(500).json({ error: "events_db_dashboard_failed", details: err.message });
   }
 });
@@ -2073,14 +2193,14 @@ async function syncAndBroadcastEventDeltas() {
       });
     }
   } catch (err) {
-    console.warn(`[WS events] scan failed: ${err.message}`);
+    logger.warn({ err }, "[WS events] scan failed");
   } finally {
     wsScanInFlight = false;
   }
 }
 
 const httpServer = app.listen(PORT, () => {
-  console.log(`API listening on :${PORT}`);
+  logger.info({ port: PORT }, "API listening");
 });
 
 const wsServer = new WebSocketServer({
@@ -2153,7 +2273,7 @@ void (async () => {
     const snapshot = await readWindowEventEnvelopes();
     wsKnownWindowIds = new Set(snapshot.envelopes.map((env) => env.id));
   } catch (err) {
-    console.warn(`[WS events] initial sync failed: ${err.message}`);
+    logger.warn({ err }, "[WS events] initial sync failed");
   }
 })();
 
