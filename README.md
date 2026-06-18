@@ -7,7 +7,7 @@ Built with no starter code and validated through structured peer review: every a
 
 | Login | Live Detector |
 |---|---|
-| ![Login](docs/screenshots/login.png) | ![Live Detector](docs/screenshots/live-detector.png) |
+| <img src="docs/screenshots/login.png" width="100%"> | <img src="docs/screenshots/live-detector.png" width="100%"> |
 
 | Events DB | DB Dashboard |
 |---|---|
