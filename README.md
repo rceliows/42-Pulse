@@ -186,6 +186,7 @@ make down
 ## Notes
 
 - This project has been submitted to meet course requirements. While further polishing could be applied, time constraints required us to draw a line and submit at a point we considered sufficiently refined.
+- The design was inspired by the 42 Belgium landing page — the same dark gradient background was adopted and the 42 turquoise is used as the accent colour throughout the project.
 - Container runtime logic is under `app/*`.
 - The frontend (React/Vite) lives in `frontend/`; see `frontend/frontend.md` for build notes.
 - CLI/tooling runtime logic is under `tools/*`.
